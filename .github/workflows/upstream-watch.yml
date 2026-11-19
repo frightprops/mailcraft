@@ -33,13 +33,13 @@ jobs:
         shell: pwsh
     steps:
       - name: Check out patch-tools
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: patch-tools
           path: mailcraft-patches
 
       - name: Check out the fork with its fix branches
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: main
           path: mailcraft
