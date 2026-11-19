@@ -67,22 +67,26 @@ function Invoke-Native {
         [string[]] $Arguments = @(),
         [string] $WorkDir,
         [switch] $AllowFail,
-        [switch] $Quiet
+        [switch] $Quiet,
+        # Leave stderr out of Output and Lines (still shown when the command fails).
+        [switch] $StdoutOnly
     )
     $old = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     $pushed = $false
     try {
         if ($WorkDir) { Push-Location -LiteralPath $WorkDir; $pushed = $true }
-        $lines = @(& $Exe @Arguments 2>&1 | ForEach-Object { "$_" })
+        $records = @(& $Exe @Arguments 2>&1)
         $code = $LASTEXITCODE
     } finally {
         if ($pushed) { Pop-Location }
         $ErrorActionPreference = $old
     }
+    $all = @($records | ForEach-Object { "$_" })
+    $lines = if ($StdoutOnly) { @($records | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] } | ForEach-Object { "$_" }) } else { $all }
     $text = $lines -join "`n"
     if (-not $AllowFail -and $code -ne 0) {
-        throw "$Exe $($Arguments -join ' ') failed (exit $code):`n$text"
+        throw "$Exe $($Arguments -join ' ') failed (exit $code):`n$($all -join "`n")"
     }
     if (-not $Quiet -and $env:PATCHTOOLS_VERBOSE) { Write-Host $text }
     [pscustomobject]@{ Code = $code; Output = $text; Lines = $lines }
@@ -95,7 +99,8 @@ function Invoke-Git {
 
 function Invoke-Gh {
     param([string[]] $Arguments, [switch] $AllowFail)
-    Invoke-Native -Exe 'gh' -Arguments $Arguments -AllowFail:$AllowFail
+    # gh writes hints to stderr; callers parse stdout (JSON, the new pull request's URL).
+    Invoke-Native -Exe 'gh' -Arguments $Arguments -AllowFail:$AllowFail -StdoutOnly
 }
 
 function Test-IsWindows { return ($env:OS -eq 'Windows_NT') }
