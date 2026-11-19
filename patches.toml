@@ -85,3 +85,18 @@ deprecated_in = ""
 last_checked = "v0.14.0"
 evidence = "PR #1723 is open; regression test still fails on v0.14.0 without the fix; issue #1721 open by #1723; still needed; applies cleanly to v0.14.0"
 notes = "Right-click Paste Text Only in a message body and signature: the clipboard's text without its HTML or picture."
+
+[[patch]]
+id = "reply-from-own-account"
+branch = "fix/1727-reply-from-own-account"
+upstream_issue = 1727
+upstream_pr = 1731
+base_tag = "v0.14.0"
+base_commit = "97f80d84d21a4621127dacb4d9441ee8a1c6ad2a"
+test_commit = "f16a3400ca7a7d359d3bead32494e4b03e32048f"
+test_cmd = "cargo test -p mailcraft-engine --lib reply_to_first_tests"
+status = "active"
+deprecated_in = ""
+last_checked = ""
+evidence = ""
+notes = ""
