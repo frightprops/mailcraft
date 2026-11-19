@@ -1,0 +1,42 @@
+# MailCraft patch registry: one [[patch]] table per local bug fix.
+# Read and written by New-Patch.ps1, Submit-Patch.ps1, Sync-Patches.ps1 and Retire-Patch.ps1.
+# Values are strings in double quotes, whole numbers, or true/false. Comments are not kept on rewrite.
+#
+# [settings]
+#   upstream_repo   owner/name of the upstream GitHub repository
+#   fork_repo       owner/name of your fork (the "origin" remote)
+#   repo_path       working clone where fix branches are made (relative to this folder)
+#   patched_path    worktree holding doug/patched, the branch that gets built
+#   scratch_path    temporary worktrees used while checking patches
+#   target_dir      shared CARGO_TARGET_DIR, so dependencies are compiled once
+#   builds_path     where finished binaries are copied, one folder per build tag
+#   build_base      "tag" = latest upstream release tag, "main" = upstream/main
+#   build_suffix    build tags are <tag>-<build_suffix>.<n>
+#   run_ci_on_build run `cargo xtask ci` before the release build
+#
+# [[patch]]
+#   id              short name for the fix
+#   branch          fix/<issue>-<slug>, based on upstream/main
+#   upstream_issue  upstream issue number (required)
+#   upstream_pr     upstream pull request number (0 until submitted)
+#   base_tag        latest upstream release when the fix was started
+#   base_commit     upstream/main commit the branch started from
+#   test_commit     the commit that adds only the regression test (first commit on the branch)
+#   test_cmd        command that runs the regression test, e.g. cargo test -p mailcraft-html font_colour
+#   status          active | merged | superseded | conflict | deprecated
+#   deprecated_in   upstream release (or main commit) in which the fix stopped being needed
+#   last_checked    what the last sync compared against
+#   evidence        why the last sync decided what it did
+#   notes           anything else
+
+[settings]
+upstream_repo = "UCS-Care-Group/mailcraft"
+fork_repo = ""
+repo_path = "../mailcraft"
+patched_path = "../mailcraft-patched"
+scratch_path = "../mailcraft-sync-tmp"
+target_dir = "../mailcraft-target"
+builds_path = "../mailcraft-builds"
+build_base = "tag"
+build_suffix = "doug"
+run_ci_on_build = true

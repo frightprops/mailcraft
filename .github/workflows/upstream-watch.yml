@@ -1,0 +1,79 @@
+# Watches UCS-Care-Group/mailcraft for a new release and, when one appears, runs the patch checks
+# (Sync-Patches.ps1 -DryRun: nothing is changed) and opens an issue in this fork with the report.
+# Scheduled workflows run only from a repository's default branch, so the fork's default branch
+# is patch-tools.
+name: Upstream watch
+
+on:
+  schedule:
+    - cron: '23 7 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Report even if this release was reported before
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: upstream-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out patch-tools
+        uses: actions/checkout@v4
+        with:
+          ref: patch-tools
+          path: mailcraft-patches
+
+      - name: Check out the fork with its fix branches
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: mailcraft
+          fetch-depth: 0
+
+      - name: Find the latest upstream release
+        id: latest
+        run: |
+          $upstream = 'https://github.com/UCS-Care-Group/mailcraft.git'
+          git -C mailcraft remote add upstream $upstream
+          git -C mailcraft fetch --quiet --tags --force upstream
+          $tag = git -C mailcraft tag --list 'v*' | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } |
+            Sort-Object { [version]$_.Substring(1) } -Descending | Select-Object -First 1
+          $title = "Upstream $tag`: patch report"
+          $existing = gh issue list -R $env:GITHUB_REPOSITORY --state all --search "`"$title`" in:title" --json number --jq 'length'
+          $skip = ($existing -ne '0') -and ('${{ inputs.force }}' -ne 'true')
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "title=$title" >> $env:GITHUB_OUTPUT
+          "skip=$($skip.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          Write-Host "Latest upstream release: $tag (already reported: $skip)"
+
+      - name: Check the patches against it
+        if: steps.latest.outputs.skip != 'true'
+        working-directory: mailcraft-patches
+        run: |
+          git config --global user.name 'upstream-watch'
+          git config --global user.email 'upstream-watch@users.noreply.github.com'
+          ./Sync-Patches.ps1 -DryRun -Tag '${{ steps.latest.outputs.tag }}'
+          $global:LASTEXITCODE = 0
+
+      - name: Open the report issue
+        if: steps.latest.outputs.skip != 'true'
+        run: |
+          $report = Join-Path mailcraft-patches 'reports/${{ steps.latest.outputs.tag }}.md'
+          $body = (Get-Content $report -Raw) + "`n`nOn your PC: ``.\Sync-Patches.ps1`` to rebuild, then ``.\Retire-Patch.ps1 -All`` for what is no longer needed."
+          Set-Content -Path report-body.md -Value $body -Encoding utf8
+          gh issue create -R $env:GITHUB_REPOSITORY --title '${{ steps.latest.outputs.title }}' --body-file report-body.md
