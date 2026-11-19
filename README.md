@@ -22,7 +22,20 @@ fixes organised so that each one can be dropped as soon as upstream
 - `doug/patched`: the latest upstream release tag plus the commits of every fix still needed.
   It is recreated from scratch on each sync, never merged forward.
 - `patch-tools`: this branch.
-- Tags `vX.Y.Z-doug.N`: your builds. Tags `archive/fix/...`: retired fixes, kept for reference.
+- Tags `patched/vX.Y.Z-doug.N`: your builds. Tags `archive/fix/...`: retired fixes, kept for reference.
+  Never push a tag shaped like `vX.Y.Z` or `vX.Y.Z-*` to the fork: upstream's `release.yml` and
+  `freebsd.yml` run on those.
+
+## The fork on GitHub ([frightprops/mailcraft](https://github.com/frightprops/mailcraft))
+
+- Its default branch is `patch-tools`, so the only scheduled workflow is `upstream-watch`
+  (GitHub runs schedules from the default branch alone).
+- Leave the fork's `main` alone (no "Sync fork" button): a push to `main` runs upstream's CI,
+  CodeQL, coverage and scorecard workflows in the fork. Nothing here needs the fork's `main`;
+  fix branches start from `upstream/main` locally.
+- Pushing `fix/*` branches runs nothing: upstream's push-triggered workflows only watch `main`,
+  `release` and version tags.
+- In `mailcraft/`, the `upstream` remote can fetch but not push.
 
 ## Making a fix
 
@@ -54,7 +67,7 @@ bug still happen on the new upstream, without my fix?".
 ## When upstream releases
 
 ```powershell
-.\Sync-Patches.ps1             # check every fix, rebuild doug/patched, tag vX.Y.Z-doug.N
+.\Sync-Patches.ps1             # check every fix, rebuild doug/patched, tag patched/vX.Y.Z-doug.N
 .\Sync-Patches.ps1 -DryRun     # only check and write the report
 .\Sync-Patches.ps1 -Base main  # build on upstream/main instead of the latest release
 ```
@@ -74,6 +87,15 @@ Then, once you agree with it:
 ```powershell
 .\Retire-Patch.ps1 -All        # archive, delete branch, close PR if open, mark deprecated
 ```
+
+## Automatic watch
+
+`.github/workflows/upstream-watch.yml` runs daily on the fork. When upstream has a release that
+has no report issue yet, it runs `Sync-Patches.ps1 -DryRun` against it (changing nothing) and opens
+an issue in the fork titled `Upstream vX.Y.Z: patch report` with the report, so GitHub notifies
+you. It only sees fix branches that have been pushed to the fork (Submit-Patch.ps1 pushes them)
+and the `patches.toml` committed on `patch-tools`, so push `patch-tools` after changing it.
+Run it by hand from the fork's Actions tab (`force` re-reports a release).
 
 ## Rust version
 

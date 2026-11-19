@@ -40,7 +40,7 @@ $script:RegistryHeader = @'
 #   target_dir      shared CARGO_TARGET_DIR, so dependencies are compiled once
 #   builds_path     where finished binaries are copied, one folder per build tag
 #   build_base      "tag" = latest upstream release tag, "main" = upstream/main
-#   build_suffix    build tags are <tag>-<build_suffix>.<n>
+#   build_suffix    build tags are patched/<tag>-<build_suffix>.<n>
 #   run_ci_on_build run `cargo xtask ci` before the release build
 #
 # [[patch]]

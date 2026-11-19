@@ -12,7 +12,7 @@
       5. Otherwise: the fix is applied to the build base on trial -> active, or conflict
     Then (unless -DryRun) patches.toml gets each status, doug/patched is recreated as
     build base + active fixes, built (`cargo xtask ci`, then a release build), tagged
-    <tag>-<suffix>.<n>, and the binaries copied to builds_path.
+    patched/<tag>-<suffix>.<n>, and the binaries copied to builds_path.
     Retiring merged and superseded fixes is a separate, deliberate step: Retire-Patch.ps1.
 
 .PARAMETER Base
@@ -233,8 +233,9 @@ if (-not $DryRun) {
                 $build.Note = "Release build failed:`n$($rb.Output | Select-Object -Last 1)"
                 Write-Warn 'Release build failed'
             } else {
+                # Never v<semver>-*: upstream's release.yml runs on such tags if one reaches the fork.
                 $suffix = $reg.Settings['build_suffix']
-                $prefix = "$label-$suffix."
+                $prefix = "patched/$label-$suffix."
                 $nums = (Invoke-Git $paths.Repo @('tag', '--list', "$prefix*")).Lines |
                     ForEach-Object { $_.Substring($prefix.Length) } | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
                 $next = 1 + ($nums | Measure-Object -Maximum).Maximum

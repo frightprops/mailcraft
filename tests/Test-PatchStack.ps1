@@ -117,9 +117,9 @@ try {
     $patched = Join-Path $root 'mailcraft-patched'
     Check ([IO.File]::ReadAllText("$patched/app/src/c.rs") -match '-x') 'doug/patched has the negate fix'
     Check ([IO.File]::ReadAllText("$patched/app/src/d.rs") -match 'hi there') 'doug/patched has upstream greeting, not the conflicting fix'
-    Check ((Invoke-Git $repo @('tag', '--list', 'v1.1.0-doug.1')).Output.Trim() -eq 'v1.1.0-doug.1') 'build tag v1.1.0-doug.1 made'
+    Check ((Invoke-Git $repo @('tag', '--list', 'patched/v1.1.0-doug.1')).Output.Trim() -eq 'patched/v1.1.0-doug.1') 'build tag patched/v1.1.0-doug.1 made'
     $exe = if (Test-IsWindows) { 'mailcraft.exe' } else { 'mailcraft' }
-    Check (Test-Path (Join-Path $root "mailcraft-builds/v1.1.0-doug.1/$exe")) 'binary copied to mailcraft-builds'
+    Check (Test-Path (Join-Path $root "mailcraft-builds/patched/v1.1.0-doug.1/$exe")) 'binary copied to mailcraft-builds'
     Check (Test-Path (Join-Path $tools 'reports/v1.1.0.md')) 'report written'
 
     # ------------------------------------------------------------ retire
@@ -139,7 +139,7 @@ try {
     & (Join-Path $tools 'Sync-Patches.ps1')
     $report = [IO.File]::ReadAllText((Join-Path $tools 'reports/v1.1.0.md'))
     Check ($report -notmatch '\| add \|') 'retired patches are no longer checked'
-    Check ((Invoke-Git $repo @('tag', '--list', 'v1.1.0-doug.2')).Output.Trim() -eq 'v1.1.0-doug.2') 'second build tag v1.1.0-doug.2'
+    Check ((Invoke-Git $repo @('tag', '--list', 'patched/v1.1.0-doug.2')).Output.Trim() -eq 'patched/v1.1.0-doug.2') 'second build tag patched/v1.1.0-doug.2'
 } finally {
     if ($Keep) { Write-Host "`nKept: $root" }
     else {
