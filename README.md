@@ -13,6 +13,7 @@ fixes organised so that each one can be dropped as soon as upstream
 | `mailcraft-patched/` | Worktree of `doug/patched`, the branch that is built and run. Recreated on every sync. |
 | `mailcraft-target/` | Shared Cargo target folder, so dependencies are compiled once. |
 | `mailcraft-builds/<tag>/` | Finished `mailcraft.exe` and `mailcraft-cli.exe` for each build tag. |
+| `mailcraft-builds/current/` | A copy of the latest build (`BUILD.txt` says which); the taskbar pin starts this one. Close MailCraft before a sync so it can be replaced. |
 
 ## Branches
 

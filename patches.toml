@@ -11,7 +11,7 @@
 #   target_dir      shared CARGO_TARGET_DIR, so dependencies are compiled once
 #   builds_path     where finished binaries are copied, one folder per build tag
 #   build_base      "tag" = latest upstream release tag, "main" = upstream/main
-#   build_suffix    build tags are <tag>-<build_suffix>.<n>
+#   build_suffix    build tags are patched/<tag>-<build_suffix>.<n>
 #   run_ci_on_build run `cargo xtask ci` before the release build
 #
 # [[patch]]
@@ -40,3 +40,18 @@ builds_path = "../mailcraft-builds"
 build_base = "tag"
 build_suffix = "doug"
 run_ci_on_build = true
+
+[[patch]]
+id = "popout-minimized-main"
+branch = "fix/1314-popout-minimized-main"
+upstream_issue = 1314
+upstream_pr = 1707
+base_tag = "v0.13.0"
+base_commit = "04e51bb3c23b01f9f5537c5438783848f51465af"
+test_commit = "e3a68b9d0100a7166c39b38d04bbfd2056570b78"
+test_cmd = "cargo test -p mailcraft-ui-egui window_restored"
+status = "active"
+deprecated_in = ""
+last_checked = ""
+evidence = ""
+notes = "Pop-out stays unresponsive (close button does nothing) after it was minimized while the main window is minimized: eframe keeps its stale minimized state and runs logic-only passes."

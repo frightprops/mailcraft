@@ -117,7 +117,8 @@ $prArgs = @('pr', 'create', '-R', $upstream, '--base', 'main', '--head', "${owne
 if (-not $Ready) { $prArgs += '--draft' }
 $pr = Invoke-Gh $prArgs
 Remove-Item -LiteralPath $bodyFile -ErrorAction SilentlyContinue
-$url = ($pr.Lines | Where-Object { $_ -match '/pull/\d+' } | Select-Object -Last 1)
+$url = ($pr.Lines | Where-Object { $_ -match '^\s*https://\S+/pull/\d+\s*$' } | Select-Object -First 1)
+if ($url) { $url = $url.Trim() }
 if ($url -match '/pull/(\d+)') { $patch['upstream_pr'] = [int]$Matches[1] }
 Write-Registry $reg
 Write-Host "Pull request: $url"

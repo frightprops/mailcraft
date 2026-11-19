@@ -252,6 +252,18 @@ if (-not $DryRun) {
                 }
                 $build.Binaries = $dest
                 Write-Note "Tagged $($build.Tag); binaries in $dest"
+
+                # The taskbar pin points at current\, so it always starts the latest build.
+                $current = Join-Path $paths.Builds 'current'
+                New-Item -ItemType Directory -Force -Path $current | Out-Null
+                try {
+                    Get-ChildItem -LiteralPath $dest -File | Copy-Item -Destination $current -Force -ErrorAction Stop
+                    Set-Content -LiteralPath (Join-Path $current 'BUILD.txt') -Value "$($build.Tag)`n$msg" -Encoding utf8
+                    Write-Note "Copied to $current"
+                } catch {
+                    $build.Note = "Not copied to $current (is MailCraft running from there? close it and copy $dest by hand): $($_.Exception.Message)"
+                    Write-Warn $build.Note
+                }
             }
         }
     }
