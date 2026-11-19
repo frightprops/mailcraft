@@ -31,7 +31,7 @@
 
 [settings]
 upstream_repo = "UCS-Care-Group/mailcraft"
-fork_repo = ""
+fork_repo = "frightprops/mailcraft"
 repo_path = "../mailcraft"
 patched_path = "../mailcraft-patched"
 scratch_path = "../mailcraft-sync-tmp"
