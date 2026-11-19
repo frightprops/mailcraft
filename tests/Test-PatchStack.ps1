@@ -134,12 +134,26 @@ try {
     Check (Test-RefExists $forkBare 'refs/tags/archive/fix/1-add') 'add archived on origin'
     Check (-not (Test-RefExists $forkBare 'refs/heads/fix/2-double')) 'double branch deleted on origin'
 
+    # ------------------------------------------------------------ backport for the conflict
+    G $repo fetch -q upstream --tags
+    G $repo switch -q -c backport/v1.1.0/fix/4-greeting refs/tags/v1.1.0
+    G $repo cherry-pick -x 'fix/4-greeting~1'
+    Write-File "$repo/app/src/d.rs" "pub fn greeting() -> &'static str {`n    `"hello`"`n}`n"
+    Commit $repo 'Fix greeting (backport to v1.1.0)'
+    G $repo switch -q --detach refs/remotes/upstream/main
+
     # ------------------------------------------------------------ second sync
     Write-Host "`n--- Sync-Patches.ps1 (second)" -ForegroundColor Cyan
     & (Join-Path $tools 'Sync-Patches.ps1')
     $report = [IO.File]::ReadAllText((Join-Path $tools 'reports/v1.1.0.md'))
     Check ($report -notmatch '\| add \|') 'retired patches are no longer checked'
     Check ((Invoke-Git $repo @('tag', '--list', 'patched/v1.1.0-doug.2')).Output.Trim() -eq 'patched/v1.1.0-doug.2') 'second build tag patched/v1.1.0-doug.2'
+    $r = Read-ToyRegistry
+    $st = @{}; foreach ($p in $r.Patches) { $st[$p['id']] = $p['status'] }
+    Check ($st['greeting'] -eq 'active') "greeting is active through its backport (got $($st['greeting']))"
+    Check ([IO.File]::ReadAllText("$patched/app/src/d.rs") -match '"hello"') 'doug/patched has the backported greeting fix'
+    Check ([IO.File]::ReadAllText("$patched/app/src/c.rs") -match '-x') 'doug/patched still has the negate fix'
+    Check ((Get-Content (Join-Path $root "mailcraft-builds/current/BUILD.txt") -First 1) -eq 'patched/v1.1.0-doug.2') 'current\ holds the latest build'
 } finally {
     if ($Keep) { Write-Host "`nKept: $root" }
     else {

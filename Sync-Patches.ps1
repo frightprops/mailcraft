@@ -163,9 +163,31 @@ foreach ($p in @($reg.Patches | Where-Object { $_['status'] -ne 'deprecated' }))
                 [void]$evidence.Add("still needed; applies cleanly to $label")
             } else {
                 $status = 'conflict'
-                [void]$evidence.Add("still needed; conflicts with $label (rebase the branch by hand)")
             }
         } finally { Remove-ScratchWorktree $paths.Repo $wt }
+        # The fix rebuilt by hand for this build base (README: "Fixing a conflict").
+        if ($status -eq 'conflict') {
+            $backport = "backport/$label/$($p['branch'])"
+            $bpRef = Resolve-PatchRef $paths.Repo $backport
+            $bpCommits = @()
+            if ($bpRef) {
+                $bpCommits = @((Invoke-Git $paths.Repo @('rev-list', '--reverse', '--no-merges', "$buildRef..$bpRef")).Lines | Where-Object { $_ -match '^[0-9a-f]{40}$' })
+            }
+            if ($bpCommits.Count -gt 0) {
+                $wt = New-ScratchWorktree $paths.Repo $paths.Scratch $id $buildRef
+                try {
+                    if (Add-CommitsNoCommit $wt $bpCommits) {
+                        $status = 'active'
+                        $commits = $bpCommits
+                        [void]$evidence.Add("still needed; the branch conflicts with $label, so $backport is used")
+                    }
+                } finally { Remove-ScratchWorktree $paths.Repo $wt }
+            }
+            if ($status -eq 'conflict') {
+                $how = if ($bpRef) { "$backport doesn't apply either" } else { "rebase the branch, or make $backport by hand" }
+                [void]$evidence.Add("still needed; conflicts with $label ($how)")
+            }
+        }
     }
     if ($prMergedPending -and $status -eq 'active') { [void]$evidence.Add('will be retired once a release contains it') }
 

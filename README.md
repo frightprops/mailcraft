@@ -114,6 +114,20 @@ on code upstream considers clean. Working by hand in `mailcraft/`, do the same:
 
 ## Fixing a conflict
 
+A fix is made on upstream/main, and a release tag can be far behind it. When the branch doesn't
+apply to the release being built, make a backport for that release: a branch named
+`backport/<release tag>/<fix branch>`, made from the tag, with the fix's commits picked and the
+conflicts resolved. Sync uses it for that release only (and still checks the fix branch first).
+
+```powershell
+cd ..\mailcraft
+git switch -c backport/v0.13.0/fix/1314-popout-minimized-main v0.13.0
+git cherry-pick -x <test commit> <fix commit>   # resolve, git add, git cherry-pick --continue
+git push origin backport/v0.13.0/fix/1314-popout-minimized-main
+```
+
+When the branch itself conflicts with upstream/main (so the pull request does too), rebase it:
+
 ```powershell
 cd ..\mailcraft
 git switch fix/1464-custom-font-colour
