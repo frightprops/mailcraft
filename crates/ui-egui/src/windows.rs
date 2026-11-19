@@ -2911,6 +2911,10 @@ mod tests {
 mod window_minimized_tests;
 
 #[cfg(test)]
+#[path = "window_restored_tests.rs"]
+mod window_restored_tests;
+
+#[cfg(test)]
 #[path = "window_identity_tests.rs"]
 mod window_identity_tests;
 
