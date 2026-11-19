@@ -70,3 +70,18 @@ deprecated_in = ""
 last_checked = ""
 evidence = ""
 notes = "Insert Link (and Word Count, Date and Time, Find) pressed in a pop-out message window opened behind it, over the main window: the dialog was drawn in the main window, which Windows would not bring forward."
+
+[[patch]]
+id = "paste-text-only"
+branch = "fix/1721-paste-text-only"
+upstream_issue = 1721
+upstream_pr = 1723
+base_tag = "v0.14.0"
+base_commit = "979953f012636fa7c2380124fd307152404c29bf"
+test_commit = "8ed8bc15d34427cff6cc66f33256a379124bf8e4"
+test_cmd = "cargo test -p mailcraft-ui-egui --lib paste_text_only"
+status = "active"
+deprecated_in = ""
+last_checked = ""
+evidence = ""
+notes = "Right-click Paste Text Only in a message body and signature: the clipboard's text without its HTML or picture."
