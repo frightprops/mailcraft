@@ -302,7 +302,8 @@ function Resolve-PatchRef {
     $local = Test-RefExists $Repo "refs/heads/$Branch"
     $remote = Test-RefExists $Repo "refs/remotes/origin/$Branch"
     if ($local -and $remote) {
-        if (Test-IsAncestor $Repo "refs/heads/$Branch" "refs/remotes/origin/$Branch") { return "refs/remotes/origin/$Branch" }
+        $same = (Get-Sha $Repo "refs/heads/$Branch") -eq (Get-Sha $Repo "refs/remotes/origin/$Branch")
+        if (-not $same -and (Test-IsAncestor $Repo "refs/heads/$Branch" "refs/remotes/origin/$Branch")) { return "refs/remotes/origin/$Branch" }
         return "refs/heads/$Branch"
     }
     if ($local) { return "refs/heads/$Branch" }
