@@ -55,3 +55,18 @@ deprecated_in = ""
 last_checked = "v0.13.0"
 evidence = "PR #1707 is open; regression test still fails on v0.13.0 without the fix; issue #1314 open by #1707; still needed; the branch conflicts with v0.13.0, so backport/v0.13.0/fix/1314-popout-minimized-main is used"
 notes = "Pop-out stays unresponsive (close button does nothing) after it was minimized while the main window is minimized: eframe keeps its stale minimized state and runs logic-only passes."
+
+[[patch]]
+id = "dialog-over-pop-out"
+branch = "fix/1712-dialog-over-pop-out"
+upstream_issue = 1712
+upstream_pr = 1713
+base_tag = "v0.13.0"
+base_commit = "04e51bb3c23b01f9f5537c5438783848f51465af"
+test_commit = "af71b39be1c81741914c7cc6abd81945f43bb084"
+test_cmd = "cargo test -p mailcraft-ui-egui --lib insert_link_pressed_in_a_pop_out"
+status = "active"
+deprecated_in = ""
+last_checked = ""
+evidence = ""
+notes = "Insert Link (and Word Count, Date and Time, Find) pressed in a pop-out message window opened behind it, over the main window: the dialog was drawn in the main window, which Windows would not bring forward."
