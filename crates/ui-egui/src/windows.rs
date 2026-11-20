@@ -1235,6 +1235,11 @@ fn show_native(app: &mut MailApp, ctx: &egui::Context, window: &mut Open, last: 
         // A backend that has no windows after all puts this inside the main one itself.
         let inside = class == egui::ViewportClass::EmbeddedWindow;
         let closing = !inside && ctx.input(|i| i.viewport().close_requested());
+        // (Inside the main window, what is let go over it is the main window's.)
+        #[cfg(not(target_arch = "wasm32"))]
+        if !inside {
+            let_go_here(app, &ctx, window.what.compose());
+        }
         // The window has the keyboard to itself: what is on top in it gets Escape and Enter. While
         // the main window asks something (an agent's question, or a question for this window's
         // form), they are nobody's here.
@@ -1269,6 +1274,21 @@ pub(crate) fn clipboard_keys(app: &MailApp, ctx: &egui::Context) {
         let board = app.services.clipboard.as_deref();
         ctx.input_mut(|i| crate::paste_keys::translate(&mut i.events, board));
     }
+}
+
+/// Files let go over a window of the system, which the main window never sees: to the message
+/// written in it (`writing`), if it shows one; else opened or brought in by their kind.
+#[cfg(not(target_arch = "wasm32"))]
+fn let_go_here(app: &mut MailApp, ctx: &egui::Context, writing: Option<u64>) {
+    let files = ctx.input(|i| i.raw.dropped_files.clone());
+    if files.is_empty() {
+        return;
+    }
+    let was = std::mem::replace(&mut app.by_hand, true);
+    for f in files {
+        app.let_go(&f.path().to_string_lossy(), writing);
+    }
+    app.by_hand = was;
 }
 
 /// A movable window inside the main one; `behind`: another of them is the active one (or a
