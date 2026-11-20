@@ -2965,6 +2965,10 @@ mod window_minimized_tests;
 mod window_identity_tests;
 
 #[cfg(test)]
+#[path = "window_drop_tests.rs"]
+mod window_drop_tests;
+
+#[cfg(test)]
 #[path = "window_places_show_tests.rs"]
 mod window_places_show_tests;
 
