@@ -101,6 +101,15 @@ ignore = true
 multiple-versions = "warn"
 # Workspace crates name each other by path alone; every crates.io dependency has a version.
 wildcards = "allow"
+# The spelling checker is MailCraft's own reader (crates/spell). Only the SCOWL word list is
+# data; a Hunspell engine, binding or port is never a dependency. (No crates.io crate is named
+# nuspell, so it is not listed.)
+deny = [
+    { crate = "hunspell-rs", reason = "the spelling engine is our own clean-room reader (crates/spell); only the SCOWL word list is used" },
+    { crate = "hunspell-sys", reason = "as above" },
+    { crate = "spellbook", reason = "as above" },
+    { crate = "zspell", reason = "as above" },
+]
 
 [sources]
 unknown-registry = "deny"
