@@ -128,5 +128,20 @@ test_cmd = "cargo test -p mailcraft-ui-egui --lib window_drop_tests"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1743 is open; regression test still fails on v0.14.0 without the fix; issue #1742 closed as a duplicate of #1280 (not declined), PR re-pointed to close #1280; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/drop-picture-in-message is used"
+evidence = "PR #1743 is open; regression test still fails on v0.14.0 without the fix; issue #1280 open by #1743; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/drop-picture-in-message is used"
 notes = "A file dropped on a message window of its own (New Email with new messages in a window) was ignored; a picture dropped on a message in HTML now goes into its text at the caret. Filed as #1742, closed in favour of #1280 (which now covers the picture-in-body case too). The branch keeps its first name: renaming a fork branch closes its upstream PR."
+
+[[patch]]
+id = "recipient-suggestions"
+branch = "fix/1776-recipient-suggestions"
+upstream_issue = 1776
+upstream_pr = 1781
+base_tag = "v0.14.0"
+base_commit = "33740ca6e6b8ed0743edb49b7e3f728115913944"
+test_commit = "8b8d97db5bc2f1b3199572f5fdc8d0d70803d8a5"
+test_cmd = "cargo test -p mailcraft-engine --lib -- compose_trust_tests:: search_suggest_tests::"
+status = "active"
+deprecated_in = ""
+last_checked = "v0.14.0"
+evidence = "PR #1781 is open; regression test still fails on v0.14.0 without the fix; issue #1776 open by #1781; still needed; applies cleanly to v0.14.0"
+notes = "To/Cc/Bcc suggestions left out the owner's own addresses and listed every matching contact before people mail was sent to; now own addresses are included and the ranking is by sends from Sent Items and the Outbox."
