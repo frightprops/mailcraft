@@ -119,7 +119,7 @@ notes = "Resize a picture in the message by its bottom-right corner (compose.pic
 [[patch]]
 id = "drop-picture-in-message"
 branch = "fix/drop-picture-in-message"
-upstream_issue = 1742
+upstream_issue = 1280
 upstream_pr = 1743
 base_tag = "v0.14.0"
 base_commit = "198fac9e0c2676faaeb320c6c54022c41bf15330"
@@ -128,5 +128,5 @@ test_cmd = "cargo test -p mailcraft-ui-egui --lib window_drop_tests"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1743 is open; regression test still fails on v0.14.0 without the fix; issue #1742 open by #1743; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/drop-picture-in-message is used"
-notes = "A file dropped on a message window of its own (New Email with new messages in a window) was ignored; a picture dropped on a message in HTML now goes into its text at the caret. The branch keeps its first name: renaming a fork branch closes its upstream PR."
+evidence = "PR #1743 is open; regression test still fails on v0.14.0 without the fix; issue #1742 closed as a duplicate of #1280 (not declined), PR re-pointed to close #1280; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/drop-picture-in-message is used"
+notes = "A file dropped on a message window of its own (New Email with new messages in a window) was ignored; a picture dropped on a message in HTML now goes into its text at the caret. Filed as #1742, closed in favour of #1280 (which now covers the picture-in-body case too). The branch keeps its first name: renaming a fork branch closes its upstream PR."
