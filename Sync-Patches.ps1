@@ -78,7 +78,7 @@ foreach ($p in @($reg.Patches | Where-Object { $_['status'] -ne 'deprecated' }))
         $status = 'conflict'
     } else {
         if ($ref -like 'refs/remotes/*') { [void]$evidence.Add("using origin's copy of the branch (newer than local)") }
-        $commits = @(Get-PatchCommits $paths.Repo $ref)
+        $commits = @(Get-PatchCommits $paths.Repo $ref $p['base_commit'])
     }
 
     # 1. Merged pull request
@@ -236,6 +236,10 @@ if (-not $DryRun) {
     if (-not $NoBuild) {
         $cargoEnv = Get-CargoEnv $paths $paths.Patched
         Write-Note "Rust toolchain: $(if ($cargoEnv.Contains('RUSTUP_TOOLCHAIN')) { $cargoEnv['RUSTUP_TOOLCHAIN'] } else { 'default' })"
+        # A scratch checkout shares the build folder, and its removal leaves the compiled
+        # catalogues empty. Rebuild them from this tree before anything is judged or shipped.
+        Write-Note 'Rebuilding the translation catalogues from this tree'
+        Invoke-CommandLine 'cargo clean -p mailcraft-i18n' $paths.Patched $cargoEnv | Out-Null
         if ($reg.Settings['run_ci_on_build']) {
             Write-Step 'cargo xtask ci (this takes a while)'
             $ci = Invoke-CommandLine 'cargo xtask ci' $paths.Patched $cargoEnv

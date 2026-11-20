@@ -318,8 +318,10 @@ function Resolve-PatchRef {
 
 # The patch's own commits, oldest first: what the branch adds on top of upstream/main.
 function Get-PatchCommits {
-    param([string] $Repo, [string] $Ref)
+    param([string] $Repo, [string] $Ref, [string] $Since)
     $base = (Invoke-Git $Repo @('merge-base', $Ref, 'refs/remotes/upstream/main')).Output.Trim()
+    # Once upstream merges the branch, it is all in upstream/main: count from where it started.
+    if ($Since -and $base -eq (Get-Sha $Repo $Ref) -and (Test-IsAncestor $Repo $Since $Ref)) { $base = $Since }
     $list = (Invoke-Git $Repo @('rev-list', '--reverse', '--no-merges', "$base..$Ref")).Lines | Where-Object { $_ -match '^[0-9a-f]{40}$' }
     return @($list)
 }
