@@ -53,7 +53,7 @@ test_cmd = "cargo test -p mailcraft-ui-egui window_restored"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1707 is open; regression test still fails on v0.14.0 without the fix; issue #1314 open by #1707; still needed; applies cleanly to v0.14.0"
+evidence = "PR #1707 merged as 9350a77477 but not yet in v0.14.0; regression test still fails on v0.14.0 without the fix; issue #1314 closed (completed) by #1707; still needed; applies cleanly to v0.14.0; will be retired once a release contains it"
 notes = "Pop-out stays unresponsive (close button does nothing) after it was minimized while the main window is minimized: eframe keeps its stale minimized state and runs logic-only passes."
 
 [[patch]]
@@ -63,7 +63,7 @@ upstream_issue = 1712
 upstream_pr = 1713
 base_tag = "v0.13.0"
 base_commit = "04e51bb3c23b01f9f5537c5438783848f51465af"
-test_commit = "af71b39be1c81741914c7cc6abd81945f43bb084"
+test_commit = "fe735bfe448d07efccb77b6746eb2540eabd24f2"
 test_cmd = "cargo test -p mailcraft-ui-egui --lib insert_link_pressed_in_a_pop_out"
 status = "active"
 deprecated_in = ""
@@ -78,12 +78,12 @@ upstream_issue = 1721
 upstream_pr = 1723
 base_tag = "v0.14.0"
 base_commit = "979953f012636fa7c2380124fd307152404c29bf"
-test_commit = "8ed8bc15d34427cff6cc66f33256a379124bf8e4"
+test_commit = "54b470d1d41ae2025c538c364c6fdedb4af6e9c8"
 test_cmd = "cargo test -p mailcraft-ui-egui --lib paste_text_only"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1723 is open; regression test still fails on v0.14.0 without the fix; issue #1721 open by #1723; still needed; applies cleanly to v0.14.0"
+evidence = "PR #1723 is open; regression test still fails on v0.14.0 without the fix; issue #1721 open by #1723; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/1721-paste-text-only is used"
 notes = "Right-click Paste Text Only in a message body and signature: the clipboard's text without its HTML or picture."
 
 [[patch]]
@@ -97,6 +97,36 @@ test_commit = "f16a3400ca7a7d359d3bead32494e4b03e32048f"
 test_cmd = "cargo test -p mailcraft-engine --lib reply_to_first_tests"
 status = "active"
 deprecated_in = ""
-last_checked = ""
-evidence = ""
+last_checked = "v0.14.0"
+evidence = "PR #1731 is open; regression test still fails on v0.14.0 without the fix; issue #1727 open by #1731; still needed; applies cleanly to v0.14.0"
 notes = ""
+
+[[patch]]
+id = "picture-resize"
+branch = "fix/1310-picture-resize"
+upstream_issue = 1310
+upstream_pr = 1769
+base_tag = "v0.14.0"
+base_commit = "198fac9e0c2676faaeb320c6c54022c41bf15330"
+test_commit = "c1dce9a0ec0b9c689afb2f2671db9debdbe6bf80"
+test_cmd = "cargo test -p mailcraft-engine picture_tests"
+status = "active"
+deprecated_in = ""
+last_checked = "v0.14.0"
+evidence = "regression test still fails on v0.14.0 without the fix; issue #1310 open; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/1310-picture-resize is used"
+notes = "Resize a picture in the message by its bottom-right corner (compose.picture.set). Filed as #1740, closed as a duplicate of #1310."
+
+[[patch]]
+id = "drop-picture-in-message"
+branch = "fix/drop-picture-in-message"
+upstream_issue = 1742
+upstream_pr = 1743
+base_tag = "v0.14.0"
+base_commit = "198fac9e0c2676faaeb320c6c54022c41bf15330"
+test_commit = "baffa4e83b68155775b6a79829eed0b697d713ec"
+test_cmd = "cargo test -p mailcraft-ui-egui --lib window_drop_tests"
+status = "active"
+deprecated_in = ""
+last_checked = "v0.14.0"
+evidence = "PR #1743 is open; regression test still fails on v0.14.0 without the fix; issue #1742 open by #1743; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/drop-picture-in-message is used"
+notes = "A file dropped on a message window of its own (New Email with new messages in a window) was ignored; a picture dropped on a message in HTML now goes into its text at the caret. The branch keeps its first name: renaming a fork branch closes its upstream PR."
