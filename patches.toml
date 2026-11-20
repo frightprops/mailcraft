@@ -145,3 +145,18 @@ deprecated_in = ""
 last_checked = "v0.14.0"
 evidence = "PR #1781 is open; regression test still fails on v0.14.0 without the fix; issue #1776 open by #1781; still needed; applies cleanly to v0.14.0"
 notes = "To/Cc/Bcc suggestions left out the owner's own addresses and listed every matching contact before people mail was sent to; now own addresses are included and the ranking is by sends from Sent Items and the Outbox."
+
+[[patch]]
+id = "paste-autolink"
+branch = "fix/1793-paste-autolink"
+upstream_issue = 1793
+upstream_pr = 1796
+base_tag = "v0.14.0"
+base_commit = "33740ca6e6b8ed0743edb49b7e3f728115913944"
+test_commit = "ff5ea77b5aef4409f65dc0fdad73367276fae528"
+test_cmd = "cargo test -p mailcraft-engine --lib paste_link_tests"
+status = "active"
+deprecated_in = ""
+last_checked = "v0.14.0"
+evidence = "PR #1796 is open; regression test still fails on v0.14.0 without the fix; issue #1793 open by #1796; still needed; applies cleanly to v0.14.0"
+notes = "Automatically hotlink URLs pasted into HTML messages and signatures."
