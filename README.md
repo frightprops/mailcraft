@@ -11,7 +11,7 @@ fixes organised so that each one can be dropped as soon as upstream
 | `mailcraft/` | Working clone. Remotes: `origin` = your fork, `upstream` = UCS-Care-Group. Fix branches are made here. |
 | `mailcraft-patches/` | This branch, as a git worktree: registry, scripts, reports. |
 | `mailcraft-patched/` | Worktree of `doug/patched`, the branch that is built and run. Recreated on every sync. |
-| `mailcraft-target/` | Shared Cargo target folder, so dependencies are compiled once. |
+| `mailcraft-target-sync/` | The scripts' own Cargo build folders: `patched\` (only `mailcraft-patched` builds there) and `scratch\` (the regression-test checks). Nothing else builds in it; see [Keeping syncs fast](#keeping-syncs-fast). |
 | `mailcraft-builds/<tag>/` | Finished `mailcraft.exe` and `mailcraft-cli.exe` for each build tag. |
 | `mailcraft-builds/current/` | A copy of the latest build (`BUILD.txt` says which); the taskbar pin starts this one. Close MailCraft before a sync so it can be replaced. |
 
@@ -60,7 +60,8 @@ fixes organised so that each one can be dropped as soon as upstream
    and opens a **draft** pull request upstream with `Closes #<issue>`. Read it on GitHub, mark it
    ready, and on your first pull request sign the CLA by commenting:
    `I have read the MailCraft CLA and I agree to it.` (only you can sign it).
-6. `.\Sync-Patches.ps1` to rebuild your copy with the new fix in it.
+6. `.\Sync-Patches.ps1` to rebuild your copy with the new fix in it. Only one of `Submit-Patch.ps1`
+   and `Sync-Patches.ps1` runs at a time; the second says so and stops.
 
 The test-first commit is what makes step 3 of the sync work: it lets the sync ask "does the
 bug still happen on the new upstream, without my fix?".
@@ -71,6 +72,8 @@ bug still happen on the new upstream, without my fix?".
 .\Sync-Patches.ps1             # check every fix, rebuild doug/patched, tag patched/vX.Y.Z-doug.N
 .\Sync-Patches.ps1 -DryRun     # only check and write the report
 .\Sync-Patches.ps1 -Base main  # build on upstream/main instead of the latest release
+.\Sync-Patches.ps1 -Recheck    # run every fix's regression test again, even one whose result stands
+.\Sync-Patches.ps1 -FullCi     # check the build with cargo xtask ci instead of the workspace tests
 ```
 
 Each fix that is not deprecated is checked in this order:
@@ -88,6 +91,28 @@ Then, once you agree with it:
 ```powershell
 .\Retire-Patch.ps1 -All        # archive, delete branch, close PR if open, mark deprecated
 ```
+
+## Keeping syncs fast
+
+A sync after a fix changes should take minutes, not hours. What keeps it that way:
+
+- **Its own build folders.** Cargo names a workspace crate's output by its path within the
+  workspace, so two MailCraft checkouts building in one folder overwrite each other's crates, and
+  one can link the other's (a build that "can't find" a function the tree has). Only
+  `mailcraft-patched` builds in `mailcraft-target-sync\patched`, so it stays incremental; the
+  scratch checks build in `scratch\`. **Agents and hand builds never use `mailcraft-target-sync`**:
+  give each checkout its own `CARGO_TARGET_DIR`.
+- **One script at a time.** `Sync-Patches.ps1` and `Submit-Patch.ps1` take `.patch-tools.lock`; a
+  second one refuses to start ("Another patch script is running") instead of racing the first.
+- **Check 3 runs only when something changed.** A fix's regression test is run on the build base
+  again only when the base, its test commit or its `test_cmd` changed (`check_key` in
+  `patches.toml`). `-Recheck` runs them all.
+- **Only changed files are touched.** `doug/patched` is put together in a scratch worktree and
+  checked out in one step, so cargo rebuilds only what differs from the last build.
+- **The build is checked with the workspace tests** (`cargo test --locked --workspace`): each fix
+  already passed `cargo xtask ci` on its own branch. `-FullCi` runs `cargo xtask ci` instead.
+
+The first sync with an empty `mailcraft-target-sync` compiles everything once (debug and release).
 
 ## Automatic watch
 

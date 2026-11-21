@@ -8,7 +8,8 @@
       double   - upstream fixes the bug its own way               -> superseded
       negate   - upstream leaves the bug alone                    -> active, built in
       greeting - upstream rewrites the same line, bug still there -> conflict, left out
-    Then Retire-Patch.ps1 -All and a second sync. Needs git and cargo; takes a minute or two.
+    Then Retire-Patch.ps1 -All and a second sync, which keeps the first one's regression-test
+    results; -Recheck and the one-script-at-a-time lock. Needs git and cargo; takes a minute or two.
 #>
 [CmdletBinding()]
 param([switch] $Keep)
@@ -154,6 +155,19 @@ try {
     Check ([IO.File]::ReadAllText("$patched/app/src/d.rs") -match '"hello"') 'doug/patched has the backported greeting fix'
     Check ([IO.File]::ReadAllText("$patched/app/src/c.rs") -match '-x') 'doug/patched still has the negate fix'
     Check ((Get-Content (Join-Path $root "mailcraft-builds/current/BUILD.txt") -First 1) -eq 'patched/v1.1.0-doug.2') 'current\ holds the latest build'
+    Check ($report -match '\| negate \|[^\n]*kept from an earlier sync') 'the second sync keeps negate''s regression-test result instead of running it again'
+    Check (Test-Path (Join-Path $root 'mailcraft-target-sync/patched')) 'doug/patched builds in a folder of its own'
+
+    # ------------------------------------------------------------ -Recheck and the lock
+    Write-Host "`n--- Sync-Patches.ps1 -DryRun -Recheck" -ForegroundColor Cyan
+    & (Join-Path $tools 'Sync-Patches.ps1') -DryRun -Recheck
+    $report = [IO.File]::ReadAllText((Join-Path $tools 'reports/v1.1.0.md'))
+    Check ($report -match '\| negate \|[^\n]*still fails' -and $report -notmatch 'kept from an earlier sync') '-Recheck runs the regression test again'
+    $m = Import-Module (Join-Path $tools 'PatchTools.psm1') -Force -PassThru
+    $held = & $m { Enter-PatchLock 'Test-PatchStack.ps1' }
+    $refused = ''
+    try { & (Join-Path $tools 'Sync-Patches.ps1') -DryRun } catch { $refused = $_.Exception.Message } finally { $held.Dispose() }
+    Check ($refused -match 'Another patch script is running \(Test-PatchStack\.ps1') "a second patch script refuses to start while one runs (got '$refused')"
 } finally {
     if ($Keep) { Write-Host "`nKept: $root" }
     else {

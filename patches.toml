@@ -8,11 +8,13 @@
 #   repo_path       working clone where fix branches are made (relative to this folder)
 #   patched_path    worktree holding doug/patched, the branch that gets built
 #   scratch_path    temporary worktrees used while checking patches
-#   target_dir      shared CARGO_TARGET_DIR, so dependencies are compiled once
+#   target_dir      the scripts' own Cargo build folder (patched\ for doug/patched, scratch\ for
+#                   the checks); nothing else may build in it
 #   builds_path     where finished binaries are copied, one folder per build tag
 #   build_base      "tag" = latest upstream release tag, "main" = upstream/main
 #   build_suffix    build tags are patched/<tag>-<build_suffix>.<n>
-#   run_ci_on_build run `cargo xtask ci` before the release build
+#   run_ci_on_build run `cargo test --locked --workspace` (with -FullCi, `cargo xtask ci`) before
+#                   the release build
 #
 # [[patch]]
 #   id              short name for the fix
@@ -26,6 +28,8 @@
 #   status          active | merged | superseded | conflict | deprecated
 #   deprecated_in   upstream release (or main commit) in which the fix stopped being needed
 #   last_checked    what the last sync compared against
+#   check_key       build base, test commit and test_cmd of the last regression-test check
+#   check_verdict   what that check gave; a sync with the same check_key reuses it (-Recheck doesn't)
 #   evidence        why the last sync decided what it did
 #   notes           anything else
 
@@ -35,7 +39,7 @@ fork_repo = "frightprops/mailcraft"
 repo_path = "../mailcraft"
 patched_path = "../mailcraft-patched"
 scratch_path = "../mailcraft-sync-tmp"
-target_dir = "../mailcraft-target"
+target_dir = "../mailcraft-target-sync"
 builds_path = "../mailcraft-builds"
 build_base = "tag"
 build_suffix = "doug"

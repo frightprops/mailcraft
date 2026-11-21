@@ -7,7 +7,8 @@ $script:ToolsDir = $PSScriptRoot
 $script:RegistryPath = Join-Path $PSScriptRoot 'patches.toml'
 $script:PatchKeyOrder = @(
     'id', 'branch', 'upstream_issue', 'upstream_pr', 'base_tag', 'base_commit',
-    'test_commit', 'test_cmd', 'status', 'deprecated_in', 'last_checked', 'evidence', 'notes'
+    'test_commit', 'test_cmd', 'status', 'deprecated_in', 'last_checked', 'check_key', 'check_verdict',
+    'evidence', 'notes'
 )
 $script:SettingsKeyOrder = @(
     'upstream_repo', 'fork_repo', 'repo_path', 'patched_path', 'scratch_path', 'target_dir',
@@ -19,7 +20,7 @@ $script:SettingDefaults = [ordered]@{
     repo_path       = '../mailcraft'
     patched_path    = '../mailcraft-patched'
     scratch_path    = '../mailcraft-sync-tmp'
-    target_dir      = '../mailcraft-target'
+    target_dir      = '../mailcraft-target-sync'
     builds_path     = '../mailcraft-builds'
     build_base      = 'tag'
     build_suffix    = 'doug'
@@ -37,11 +38,13 @@ $script:RegistryHeader = @'
 #   repo_path       working clone where fix branches are made (relative to this folder)
 #   patched_path    worktree holding doug/patched, the branch that gets built
 #   scratch_path    temporary worktrees used while checking patches
-#   target_dir      shared CARGO_TARGET_DIR, so dependencies are compiled once
+#   target_dir      the scripts' own Cargo build folder (patched\ for doug/patched, scratch\ for
+#                   the checks); nothing else may build in it
 #   builds_path     where finished binaries are copied, one folder per build tag
 #   build_base      "tag" = latest upstream release tag, "main" = upstream/main
 #   build_suffix    build tags are patched/<tag>-<build_suffix>.<n>
-#   run_ci_on_build run `cargo xtask ci` before the release build
+#   run_ci_on_build run `cargo test --locked --workspace` (with -FullCi, `cargo xtask ci`) before
+#                   the release build
 #
 # [[patch]]
 #   id              short name for the fix
@@ -55,6 +58,8 @@ $script:RegistryHeader = @'
 #   status          active | merged | superseded | conflict | deprecated
 #   deprecated_in   upstream release (or main commit) in which the fix stopped being needed
 #   last_checked    what the last sync compared against
+#   check_key       build base, test commit and test_cmd of the last regression-test check
+#   check_verdict   what that check gave; a sync with the same check_key reuses it (-Recheck doesn't)
 #   evidence        why the last sync decided what it did
 #   notes           anything else
 '@
@@ -244,6 +249,19 @@ function Write-Registry {
     [IO.File]::WriteAllText($script:RegistryPath, ($sb.ToString() -replace "`r`n", "`n"), $utf8)
 }
 
+# Writes `$Keys` of each of `$Patches` into patches.toml as it is on disk now, so a patch that
+# another script registered or changed while this one ran is kept.
+function Save-PatchFields {
+    param([object[]] $Patches, [string[]] $Keys)
+    $disk = Read-Registry
+    foreach ($p in $Patches) {
+        $d = $disk.Patches | Where-Object { $_['id'] -eq $p['id'] } | Select-Object -First 1
+        if ($null -eq $d) { continue }
+        foreach ($k in $Keys) { if ($p.Contains($k)) { $d[$k] = $p[$k] } }
+    }
+    Write-Registry $disk
+}
+
 function Get-Patch {
     param([pscustomobject] $Registry, [string] $Id)
     $p = $Registry.Patches | Where-Object { $_['id'] -eq $Id } | Select-Object -First 1
@@ -262,13 +280,19 @@ function Resolve-ToolPath {
 function Get-Paths {
     param([pscustomobject] $Registry)
     $s = $Registry.Settings
+    $target = Resolve-ToolPath $s['target_dir']
+    # Cargo names a workspace crate's output by its path within the workspace, so two checkouts
+    # building in one folder overwrite each other's crates, and one can link the other's. Only
+    # mailcraft-patched builds in patched\; the scratch checkouts, one at a time, in scratch\.
     [pscustomobject]@{
-        Repo    = Resolve-ToolPath $s['repo_path']
-        Patched = Resolve-ToolPath $s['patched_path']
-        Scratch = Resolve-ToolPath $s['scratch_path']
-        Target  = Resolve-ToolPath $s['target_dir']
-        Builds  = Resolve-ToolPath $s['builds_path']
-        Reports = Join-Path $script:ToolsDir 'reports'
+        Repo          = Resolve-ToolPath $s['repo_path']
+        Patched       = Resolve-ToolPath $s['patched_path']
+        Scratch       = Resolve-ToolPath $s['scratch_path']
+        Target        = $target
+        PatchedTarget = Join-Path $target 'patched'
+        ScratchTarget = Join-Path $target 'scratch'
+        Builds        = Resolve-ToolPath $s['builds_path']
+        Reports       = Join-Path $script:ToolsDir 'reports'
     }
 }
 
@@ -385,12 +409,39 @@ function Get-PinnedToolchain {
 
 function Get-CargoEnv {
     param([pscustomobject] $Paths, [string] $Worktree)
-    # MAILCRAFT_REPORT_URL empty: a local build never sends Help > Report a Problem to the real relay.
-    $envVars = @{ CARGO_TARGET_DIR = $Paths.Target; MAILCRAFT_REPORT_URL = '' }
     if (-not $Worktree) { $Worktree = $Paths.Repo }
+    $own = [IO.Path]::GetFullPath($Worktree).TrimEnd('\', '/') -eq $Paths.Patched.TrimEnd('\', '/')
+    $target = if ($own) { $Paths.PatchedTarget } else { $Paths.ScratchTarget }
+    # MAILCRAFT_REPORT_URL empty: a local build never sends Help > Report a Problem to the real relay.
+    $envVars = @{ CARGO_TARGET_DIR = $target; MAILCRAFT_REPORT_URL = '' }
     $toolchain = Get-PinnedToolchain $Worktree
     if ($toolchain) { $envVars['RUSTUP_TOOLCHAIN'] = $toolchain }
     return $envVars
+}
+
+# ---------------------------------------------------------------- one script at a time
+
+# Sync-Patches.ps1 and Submit-Patch.ps1 share mailcraft-patched, the scratch worktrees and the build
+# folders, so only one runs at a time. Returns the open lock file; dispose of it when done. The
+# system lets go of it if the script dies.
+function Enter-PatchLock {
+    param([string] $Script)
+    $path = Join-Path $script:ToolsDir '.patch-tools.lock'
+    try {
+        $lock = [IO.File]::Open($path, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
+    } catch {
+        $holder = 'unknown'
+        try {
+            $reader = New-Object IO.StreamReader([IO.FileStream]::new($path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite))
+            try { $holder = $reader.ReadToEnd().Trim() } finally { $reader.Dispose() }
+        } catch { }
+        throw "Another patch script is running ($holder). Wait for it to finish, then run this again."
+    }
+    $lock.SetLength(0)
+    $bytes = [Text.Encoding]::UTF8.GetBytes("$Script, process $PID, since $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
+    $lock.Write($bytes, 0, $bytes.Length)
+    $lock.Flush()
+    return $lock
 }
 
 function Write-Step { param([string] $Text) Write-Host "==> $Text" -ForegroundColor Cyan }

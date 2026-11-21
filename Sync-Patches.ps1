@@ -8,11 +8,13 @@
       1. Merged pull request: upstream merged your PR and the build base contains it -> merged
       2. Identical change: `git cherry` finds every commit of the patch already upstream -> merged
       3. Fixed another way: only the regression test, applied to the build base, now passes -> superseded
+         (run again only when the build base, the test commit or test_cmd changed since the last sync)
       4. Issue state: the upstream issue's state is added as evidence (closed as not planned is flagged)
       5. Otherwise: the fix is applied to the build base on trial -> active, or conflict
     Then (unless -DryRun) patches.toml gets each status, doug/patched is recreated as
-    build base + active fixes, built (`cargo xtask ci`, then a release build), tagged
-    patched/<tag>-<suffix>.<n>, and the binaries copied to builds_path.
+    build base + active fixes, built (`cargo test --locked --workspace`, or `cargo xtask ci` with
+    -FullCi, then a release build), tagged patched/<tag>-<suffix>.<n>, and the binaries copied
+    to builds_path.
     Retiring merged and superseded fixes is a separate, deliberate step: Retire-Patch.ps1.
 
 .PARAMETER Base
@@ -25,6 +27,11 @@
     Recreate doug/patched but skip cargo and the build tag.
 .PARAMETER SkipTests
     Skip check 3 (running each regression test on the build base).
+.PARAMETER Recheck
+    Run check 3 for every fix, even one whose last result still stands.
+.PARAMETER FullCi
+    Check the build with `cargo xtask ci` (fmt, clippy, wasm, cargo-deny, ...) instead of the
+    workspace tests alone.
 .PARAMETER Push
     Push doug/patched and the build tag to origin.
 #>
@@ -35,321 +42,344 @@ param(
     [switch] $DryRun,
     [switch] $NoBuild,
     [switch] $SkipTests,
+    [switch] $Recheck,
+    [switch] $FullCi,
     [switch] $Push
 )
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'PatchTools.psm1') -Force
 
-$reg = Read-Registry
-$paths = Get-Paths $reg
-$upstream = $reg.Settings['upstream_repo']
-if (-not $Base) { $Base = $reg.Settings['build_base'] }
-$haveGh = [bool](Get-Command gh -ErrorAction SilentlyContinue)
+$lock = Enter-PatchLock 'Sync-Patches.ps1'
+try {
+    $reg = Read-Registry
+    $paths = Get-Paths $reg
+    $upstream = $reg.Settings['upstream_repo']
+    if (-not $Base) { $Base = $reg.Settings['build_base'] }
+    $haveGh = [bool](Get-Command gh -ErrorAction SilentlyContinue)
 
-Write-Step 'Fetching upstream and origin'
-Update-Remotes $paths.Repo
+    Write-Step 'Fetching upstream and origin'
+    Update-Remotes $paths.Repo
 
-if ($Base -eq 'main') {
-    $buildRef = 'refs/remotes/upstream/main'
-    $short = (Get-Sha $paths.Repo $buildRef).Substring(0, 10)
-    $latest = Get-LatestTag $paths.Repo
-    $label = "$latest-main-$short"
-} else {
-    if (-not $Tag) { $Tag = Get-LatestTag $paths.Repo }
-    if (-not (Test-RefExists $paths.Repo "refs/tags/$Tag")) { throw "Tag $Tag not found" }
-    $buildRef = "refs/tags/$Tag"
-    $label = $Tag
-}
-$buildSha = Get-Sha $paths.Repo $buildRef
-Write-Note "Build base: $label ($($buildSha.Substring(0, 10)))"
-
-$results = New-Object System.Collections.ArrayList
-
-foreach ($p in @($reg.Patches | Where-Object { $_['status'] -ne 'deprecated' })) {
-    $id = $p['id']
-    Write-Step "Checking $id ($($p['branch']))"
-    $evidence = New-Object System.Collections.ArrayList
-    $status = $null
-    $commits = @()
-
-    $ref = Resolve-PatchRef $paths.Repo $p['branch']
-    if (-not $ref) {
-        [void]$evidence.Add("branch $($p['branch']) not found locally or on origin")
-        $status = 'conflict'
+    if ($Base -eq 'main') {
+        $buildRef = 'refs/remotes/upstream/main'
+        $short = (Get-Sha $paths.Repo $buildRef).Substring(0, 10)
+        $latest = Get-LatestTag $paths.Repo
+        $label = "$latest-main-$short"
     } else {
-        if ($ref -like 'refs/remotes/*') { [void]$evidence.Add("using origin's copy of the branch (newer than local)") }
-        $commits = @(Get-PatchCommits $paths.Repo $ref $p['base_commit'])
+        if (-not $Tag) { $Tag = Get-LatestTag $paths.Repo }
+        if (-not (Test-RefExists $paths.Repo "refs/tags/$Tag")) { throw "Tag $Tag not found" }
+        $buildRef = "refs/tags/$Tag"
+        $label = $Tag
     }
+    $buildSha = Get-Sha $paths.Repo $buildRef
+    Write-Note "Build base: $label ($($buildSha.Substring(0, 10)))"
 
-    # 1. Merged pull request
-    $prMergedPending = $false
-    if (-not $status -and [int]$p['upstream_pr'] -gt 0 -and $haveGh) {
-        $pr = Invoke-Gh @('pr', 'view', "$($p['upstream_pr'])", '-R', $upstream, '--json', 'state,mergeCommit,mergedAt') -AllowFail
-        if ($pr.Code -eq 0) {
-            $prJson = $pr.Output | ConvertFrom-Json
-            if ($prJson.state -eq 'MERGED' -and $prJson.mergeCommit) {
-                $mc = $prJson.mergeCommit.oid
-                if ((Test-RefExists $paths.Repo $mc) -and (Test-IsAncestor $paths.Repo $mc $buildRef)) {
-                    $status = 'merged'
-                    [void]$evidence.Add("PR #$($p['upstream_pr']) merged as $($mc.Substring(0, 10)), included in $label")
-                } else {
-                    $prMergedPending = $true
-                    [void]$evidence.Add("PR #$($p['upstream_pr']) merged as $($mc.Substring(0, 10)) but not yet in $label")
-                }
-            } else {
-                [void]$evidence.Add("PR #$($p['upstream_pr']) is $($prJson.state.ToLower())")
-            }
+    $results = New-Object System.Collections.ArrayList
+
+    foreach ($p in @($reg.Patches | Where-Object { $_['status'] -ne 'deprecated' })) {
+        $id = $p['id']
+        Write-Step "Checking $id ($($p['branch']))"
+        $evidence = New-Object System.Collections.ArrayList
+        $status = $null
+        $commits = @()
+
+        $ref = Resolve-PatchRef $paths.Repo $p['branch']
+        if (-not $ref) {
+            [void]$evidence.Add("branch $($p['branch']) not found locally or on origin")
+            $status = 'conflict'
         } else {
-            [void]$evidence.Add("PR #$($p['upstream_pr']) could not be read")
+            if ($ref -like 'refs/remotes/*') { [void]$evidence.Add("using origin's copy of the branch (newer than local)") }
+            $commits = @(Get-PatchCommits $paths.Repo $ref $p['base_commit'])
         }
-    }
 
-    # 2. Identical change already upstream (patch-id comparison)
-    if (-not $status -and $commits.Count -gt 0) {
-        $cherry = (Invoke-Git $paths.Repo @('cherry', $buildRef, $ref, "$($commits[0])~1")).Lines | Where-Object { $_ -match '^[+-] ' }
-        $missing = @($cherry | Where-Object { $_.StartsWith('+') })
-        if ($cherry -and $missing.Count -eq 0) {
-            $status = 'merged'
-            [void]$evidence.Add("every commit of the patch is already in $label (git cherry)")
-        }
-    }
-
-    # 3. Fixed another way: the regression test alone passes on the build base
-    $testVerdict = ''
-    if (-not $status -and -not $SkipTests -and $p['test_cmd'] -and $commits.Count -gt 0) {
-        $testCommit = $p['test_commit']
-        if (-not $testCommit -or ($commits -notcontains $testCommit)) {
-            if ($testCommit) { [void]$evidence.Add('recorded test_commit no longer on the branch; using its first commit') }
-            $testCommit = $commits[0]
-        }
-        $wt = New-ScratchWorktree $paths.Repo $paths.Scratch $id $buildRef
-        try {
-            if (Add-CommitsNoCommit $wt @($testCommit)) {
-                Write-Note "Running the test without the fix: $($p['test_cmd'])"
-                $testVerdict = Get-TestVerdict (Invoke-CommandLine $p['test_cmd'] $wt (Get-CargoEnv $paths $wt))
-                switch ($testVerdict) {
-                    'pass' { $status = 'superseded'; [void]$evidence.Add("regression test passes on $label without the fix") }
-                    'fail' { [void]$evidence.Add("regression test still fails on $label without the fix") }
-                    default { [void]$evidence.Add("regression test inconclusive on ${label}: $testVerdict") }
+        # 1. Merged pull request
+        $prMergedPending = $false
+        if (-not $status -and [int]$p['upstream_pr'] -gt 0 -and $haveGh) {
+            $pr = Invoke-Gh @('pr', 'view', "$($p['upstream_pr'])", '-R', $upstream, '--json', 'state,mergeCommit,mergedAt') -AllowFail
+            if ($pr.Code -eq 0) {
+                $prJson = $pr.Output | ConvertFrom-Json
+                if ($prJson.state -eq 'MERGED' -and $prJson.mergeCommit) {
+                    $mc = $prJson.mergeCommit.oid
+                    if ((Test-RefExists $paths.Repo $mc) -and (Test-IsAncestor $paths.Repo $mc $buildRef)) {
+                        $status = 'merged'
+                        [void]$evidence.Add("PR #$($p['upstream_pr']) merged as $($mc.Substring(0, 10)), included in $label")
+                    } else {
+                        $prMergedPending = $true
+                        [void]$evidence.Add("PR #$($p['upstream_pr']) merged as $($mc.Substring(0, 10)) but not yet in $label")
+                    }
+                } else {
+                    [void]$evidence.Add("PR #$($p['upstream_pr']) is $($prJson.state.ToLower())")
                 }
             } else {
-                $testVerdict = 'does-not-apply'
-                [void]$evidence.Add("regression test commit does not apply to $label (upstream changed that code; review by hand)")
+                [void]$evidence.Add("PR #$($p['upstream_pr']) could not be read")
             }
-        } finally { Remove-ScratchWorktree $paths.Repo $wt }
-    }
-
-    # 4. Upstream issue state
-    $issueNote = ''
-    if ([int]$p['upstream_issue'] -gt 0 -and $haveGh) {
-        $iss = Invoke-Gh @('issue', 'view', "$($p['upstream_issue'])", '-R', $upstream, '--json', 'state,stateReason,closedByPullRequestsReferences') -AllowFail
-        if ($iss.Code -eq 0) {
-            $issJson = $iss.Output | ConvertFrom-Json
-            $issueNote = "issue #$($p['upstream_issue']) $($issJson.state.ToLower())"
-            if ($issJson.stateReason) { $issueNote += " ($($issJson.stateReason.ToLower()))" }
-            $closers = @($issJson.closedByPullRequestsReferences | ForEach-Object { "#$($_.number)" })
-            if ($closers.Count -gt 0) { $issueNote += " by $($closers -join ', ')" }
-            if ($issJson.stateReason -eq 'NOT_PLANNED') { $issueNote += ': upstream declined it, so keep this fix yourself' }
-            [void]$evidence.Add($issueNote)
         }
-    }
 
-    # 5. Still needed: does it apply to the build base?
-    if (-not $status) {
-        $wt = New-ScratchWorktree $paths.Repo $paths.Scratch $id $buildRef
-        try {
-            if (Add-CommitsNoCommit $wt $commits) {
-                $status = 'active'
-                [void]$evidence.Add("still needed; applies cleanly to $label")
+        # 2. Identical change already upstream (patch-id comparison)
+        if (-not $status -and $commits.Count -gt 0) {
+            $cherry = (Invoke-Git $paths.Repo @('cherry', $buildRef, $ref, "$($commits[0])~1")).Lines | Where-Object { $_ -match '^[+-] ' }
+            $missing = @($cherry | Where-Object { $_.StartsWith('+') })
+            if ($cherry -and $missing.Count -eq 0) {
+                $status = 'merged'
+                [void]$evidence.Add("every commit of the patch is already in $label (git cherry)")
+            }
+        }
+
+        # 3. Fixed another way: the regression test alone passes on the build base
+        $testVerdict = ''
+        if (-not $status -and -not $SkipTests -and $p['test_cmd'] -and $commits.Count -gt 0) {
+            $testCommit = $p['test_commit']
+            if (-not $testCommit -or ($commits -notcontains $testCommit)) {
+                if ($testCommit) { [void]$evidence.Add('recorded test_commit no longer on the branch; using its first commit') }
+                $testCommit = $commits[0]
+            }
+            # Nothing the verdict depends on has changed: the last one stands.
+            $checkKey = "$buildSha $testCommit $($p['test_cmd'])"
+            $kept = -not $Recheck -and $p['check_key'] -eq $checkKey -and @('pass', 'fail', 'does-not-apply') -contains $p['check_verdict']
+            if ($kept) {
+                $testVerdict = $p['check_verdict']
+                Write-Note "Regression test result kept from an earlier sync: $testVerdict"
             } else {
-                $status = 'conflict'
-            }
-        } finally { Remove-ScratchWorktree $paths.Repo $wt }
-        # The fix rebuilt by hand for this build base (README: "Fixing a conflict").
-        if ($status -eq 'conflict') {
-            $backport = "backport/$label/$($p['branch'])"
-            $bpRef = Resolve-PatchRef $paths.Repo $backport
-            $bpCommits = @()
-            if ($bpRef) {
-                $bpCommits = @((Invoke-Git $paths.Repo @('rev-list', '--reverse', '--no-merges', "$buildRef..$bpRef")).Lines | Where-Object { $_ -match '^[0-9a-f]{40}$' })
-            }
-            if ($bpCommits.Count -gt 0) {
                 $wt = New-ScratchWorktree $paths.Repo $paths.Scratch $id $buildRef
                 try {
-                    if (Add-CommitsNoCommit $wt $bpCommits) {
-                        $status = 'active'
-                        $commits = $bpCommits
-                        [void]$evidence.Add("still needed; the branch conflicts with $label, so $backport is used")
+                    if (Add-CommitsNoCommit $wt @($testCommit)) {
+                        Write-Note "Running the test without the fix: $($p['test_cmd'])"
+                        $testVerdict = Get-TestVerdict (Invoke-CommandLine $p['test_cmd'] $wt (Get-CargoEnv $paths $wt))
+                    } else {
+                        $testVerdict = 'does-not-apply'
                     }
                 } finally { Remove-ScratchWorktree $paths.Repo $wt }
+                $p['check_key'] = $checkKey
+                $p['check_verdict'] = $testVerdict
             }
-            if ($status -eq 'conflict') {
-                $how = if ($bpRef) { "$backport doesn't apply either" } else { "rebase the branch, or make $backport by hand" }
-                [void]$evidence.Add("still needed; conflicts with $label ($how)")
+            $earlier = if ($kept) { ' (kept from an earlier sync: same base, test commit and command)' } else { '' }
+            switch ($testVerdict) {
+                'pass' { $status = 'superseded'; [void]$evidence.Add("regression test passes on $label without the fix$earlier") }
+                'fail' { [void]$evidence.Add("regression test still fails on $label without the fix$earlier") }
+                'does-not-apply' { [void]$evidence.Add("regression test commit does not apply to $label (upstream changed that code; review by hand)$earlier") }
+                default { [void]$evidence.Add("regression test inconclusive on ${label}: $testVerdict") }
             }
         }
+
+        # 4. Upstream issue state
+        $issueNote = ''
+        if ([int]$p['upstream_issue'] -gt 0 -and $haveGh) {
+            $iss = Invoke-Gh @('issue', 'view', "$($p['upstream_issue'])", '-R', $upstream, '--json', 'state,stateReason,closedByPullRequestsReferences') -AllowFail
+            if ($iss.Code -eq 0) {
+                $issJson = $iss.Output | ConvertFrom-Json
+                $issueNote = "issue #$($p['upstream_issue']) $($issJson.state.ToLower())"
+                if ($issJson.stateReason) { $issueNote += " ($($issJson.stateReason.ToLower()))" }
+                $closers = @($issJson.closedByPullRequestsReferences | ForEach-Object { "#$($_.number)" })
+                if ($closers.Count -gt 0) { $issueNote += " by $($closers -join ', ')" }
+                if ($issJson.stateReason -eq 'NOT_PLANNED') { $issueNote += ': upstream declined it, so keep this fix yourself' }
+                [void]$evidence.Add($issueNote)
+            }
+        }
+
+        # 5. Still needed: does it apply to the build base?
+        if (-not $status) {
+            $wt = New-ScratchWorktree $paths.Repo $paths.Scratch $id $buildRef
+            try {
+                if (Add-CommitsNoCommit $wt $commits) {
+                    $status = 'active'
+                    [void]$evidence.Add("still needed; applies cleanly to $label")
+                } else {
+                    $status = 'conflict'
+                }
+            } finally { Remove-ScratchWorktree $paths.Repo $wt }
+            # The fix rebuilt by hand for this build base (README: "Fixing a conflict").
+            if ($status -eq 'conflict') {
+                $backport = "backport/$label/$($p['branch'])"
+                $bpRef = Resolve-PatchRef $paths.Repo $backport
+                $bpCommits = @()
+                if ($bpRef) {
+                    $bpCommits = @((Invoke-Git $paths.Repo @('rev-list', '--reverse', '--no-merges', "$buildRef..$bpRef")).Lines | Where-Object { $_ -match '^[0-9a-f]{40}$' })
+                }
+                if ($bpCommits.Count -gt 0) {
+                    $wt = New-ScratchWorktree $paths.Repo $paths.Scratch $id $buildRef
+                    try {
+                        if (Add-CommitsNoCommit $wt $bpCommits) {
+                            $status = 'active'
+                            $commits = $bpCommits
+                            [void]$evidence.Add("still needed; the branch conflicts with $label, so $backport is used")
+                        }
+                    } finally { Remove-ScratchWorktree $paths.Repo $wt }
+                }
+                if ($status -eq 'conflict') {
+                    $how = if ($bpRef) { "$backport doesn't apply either" } else { "rebase the branch, or make $backport by hand" }
+                    [void]$evidence.Add("still needed; conflicts with $label ($how)")
+                }
+            }
+        }
+        if ($prMergedPending -and $status -eq 'active') { [void]$evidence.Add('will be retired once a release contains it') }
+
+        Write-Note "=> $status"
+        [void]$results.Add([pscustomobject]@{
+            Patch = $p; Id = $id; Status = $status; Ref = $ref; Commits = $commits
+            Evidence = ($evidence -join '; '); Test = $testVerdict
+        })
     }
-    if ($prMergedPending -and $status -eq 'active') { [void]$evidence.Add('will be retired once a release contains it') }
 
-    Write-Note "=> $status"
-    [void]$results.Add([pscustomobject]@{
-        Patch = $p; Id = $id; Status = $status; Ref = $ref; Commits = $commits
-        Evidence = ($evidence -join '; '); Test = $testVerdict
-    })
-}
+    # ---------------------------------------------------------------- rebuild doug/patched
 
-# ---------------------------------------------------------------- rebuild doug/patched
+    $build = [pscustomobject]@{ Branch = 'doug/patched'; Applied = @(); Failed = @(); Tag = ''; Binaries = ''; Check = 'checks'; Ci = 'not run'; Note = '' }
+    if (-not $DryRun) {
+        foreach ($r in $results) {
+            $r.Patch['status'] = $r.Status
+            $r.Patch['last_checked'] = $label
+            $r.Patch['evidence'] = $r.Evidence
+        }
 
-$build = [pscustomobject]@{ Branch = 'doug/patched'; Applied = @(); Failed = @(); Tag = ''; Binaries = ''; Ci = 'not run'; Note = '' }
-if (-not $DryRun) {
-    foreach ($r in $results) {
-        $r.Patch['status'] = $r.Status
-        $r.Patch['last_checked'] = $label
-        $r.Patch['evidence'] = $r.Evidence
-    }
-
-    Write-Step "Recreating doug/patched at $label"
-    if (-not (Test-Path -LiteralPath $paths.Patched)) {
-        Invoke-Git $paths.Repo @('worktree', 'add', '-B', 'doug/patched', $paths.Patched, $buildRef) | Out-Null
-    } else {
-        Invoke-Git $paths.Patched @('cherry-pick', '--abort') -AllowFail | Out-Null
-        Invoke-Git $paths.Patched @('reset', '--hard', '--quiet') | Out-Null
-        Invoke-Git $paths.Patched @('checkout', '--quiet', '-B', 'doug/patched', $buildRef) | Out-Null
-    }
-    foreach ($r in @($results | Where-Object { $_.Status -eq 'active' })) {
-        $pick = Invoke-Git $paths.Patched (@('cherry-pick', '-x') + $r.Commits) -AllowFail
-        if ($pick.Code -eq 0) {
-            $build.Applied += $r.Id
-            Write-Note "applied $($r.Id)"
+        Write-Step "Recreating doug/patched at $label"
+        # Put together in a scratch worktree, then checked out in one step: a file that is the same
+        # as in the last build keeps its time, so cargo rebuilds only what changed since then.
+        $wt = New-ScratchWorktree $paths.Repo $paths.Scratch '_compose' $buildRef
+        try {
+            foreach ($r in @($results | Where-Object { $_.Status -eq 'active' })) {
+                $pick = Invoke-Git $wt (@('cherry-pick', '-x') + $r.Commits) -AllowFail
+                if ($pick.Code -eq 0) {
+                    $build.Applied += $r.Id
+                    Write-Note "applied $($r.Id)"
+                } else {
+                    Invoke-Git $wt @('cherry-pick', '--abort') -AllowFail | Out-Null
+                    $build.Failed += $r.Id
+                    $r.Status = 'conflict'
+                    $r.Patch['status'] = 'conflict'
+                    $r.Evidence += '; conflicts with the other fixes in doug/patched'
+                    $r.Patch['evidence'] = $r.Evidence
+                    Write-Warn "$($r.Id) conflicts with the fixes before it; left out"
+                }
+            }
+            $composed = Get-Sha $wt 'HEAD'
+        } finally { Remove-ScratchWorktree $paths.Repo $wt }
+        if (-not (Test-Path -LiteralPath $paths.Patched)) {
+            Invoke-Git $paths.Repo @('worktree', 'add', '-B', 'doug/patched', $paths.Patched, $composed) | Out-Null
         } else {
             Invoke-Git $paths.Patched @('cherry-pick', '--abort') -AllowFail | Out-Null
-            $build.Failed += $r.Id
-            $r.Status = 'conflict'
-            $r.Patch['status'] = 'conflict'
-            $r.Evidence += '; conflicts with the other fixes in doug/patched'
-            $r.Patch['evidence'] = $r.Evidence
-            Write-Warn "$($r.Id) conflicts with the fixes before it; left out"
+            Invoke-Git $paths.Patched @('reset', '--hard', '--quiet') | Out-Null
+            Invoke-Git $paths.Patched @('checkout', '--quiet', '-B', 'doug/patched', $composed) | Out-Null
         }
-    }
-    Write-Registry $reg
+        Save-PatchFields @($results | ForEach-Object { $_.Patch }) @('status', 'last_checked', 'evidence', 'check_key', 'check_verdict')
 
-    if (-not $NoBuild) {
-        $cargoEnv = Get-CargoEnv $paths $paths.Patched
-        Write-Note "Rust toolchain: $(if ($cargoEnv.Contains('RUSTUP_TOOLCHAIN')) { $cargoEnv['RUSTUP_TOOLCHAIN'] } else { 'default' })"
-        # A scratch checkout shares the build folder, and its removal leaves the compiled
-        # catalogues empty. Rebuild them from this tree before anything is judged or shipped.
-        Write-Note 'Rebuilding the translation catalogues from this tree'
-        Invoke-CommandLine 'cargo clean -p mailcraft-i18n' $paths.Patched $cargoEnv | Out-Null
-        if ($reg.Settings['run_ci_on_build']) {
-            Write-Step 'cargo xtask ci (this takes a while)'
-            $ci = Invoke-CommandLine 'cargo xtask ci' $paths.Patched $cargoEnv
-            $build.Ci = if ($ci.Code -eq 0) { 'passed' } else { 'FAILED' }
-            if ($ci.Code -ne 0) {
-                $log = Join-Path $paths.Reports "$label-ci.log"
-                if (-not (Test-Path $paths.Reports)) { New-Item -ItemType Directory $paths.Reports | Out-Null }
-                [IO.File]::WriteAllText($log, $ci.Output)
-                $build.Note = "cargo xtask ci failed; see $log. No build tag made."
-                Write-Warn $build.Note
-            }
-        }
-        if ($build.Ci -ne 'FAILED') {
-            Write-Step 'cargo build --release -p mailcraft -p mailcraft-cli'
-            $rb = Invoke-CommandLine 'cargo build --release -p mailcraft -p mailcraft-cli' $paths.Patched $cargoEnv
-            if ($rb.Code -ne 0) {
-                $build.Note = "Release build failed:`n$($rb.Output | Select-Object -Last 1)"
-                Write-Warn 'Release build failed'
-            } else {
-                # Never v<semver>-*: upstream's release.yml runs on such tags if one reaches the fork.
-                $suffix = $reg.Settings['build_suffix']
-                $prefix = "patched/$label-$suffix."
-                $nums = (Invoke-Git $paths.Repo @('tag', '--list', "$prefix*")).Lines |
-                    ForEach-Object { $_.Substring($prefix.Length) } | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
-                $next = 1 + ($nums | Measure-Object -Maximum).Maximum
-                $build.Tag = "$prefix$next"
-                $msg = "MailCraft $label with: " + ($(if ($build.Applied) { $build.Applied -join ', ' } else { 'no local fixes' }))
-                Invoke-Git $paths.Patched @('tag', '-a', $build.Tag, '-m', $msg) | Out-Null
-
-                $dest = Join-Path $paths.Builds $build.Tag
-                New-Item -ItemType Directory -Force -Path $dest | Out-Null
-                $ext = if (Test-IsWindows) { '.exe' } else { '' }
-                foreach ($bin in @("mailcraft$ext", "mailcraft-cli$ext")) {
-                    $src = Join-Path (Join-Path $paths.Target 'release') $bin
-                    if (Test-Path -LiteralPath $src) { Copy-Item -LiteralPath $src -Destination $dest -Force }
-                }
-                $build.Binaries = $dest
-                Write-Note "Tagged $($build.Tag); binaries in $dest"
-
-                # The taskbar pin points at current\, so it always starts the latest build.
-                $current = Join-Path $paths.Builds 'current'
-                New-Item -ItemType Directory -Force -Path $current | Out-Null
-                try {
-                    Get-ChildItem -LiteralPath $dest -File | Copy-Item -Destination $current -Force -ErrorAction Stop
-                    Set-Content -LiteralPath (Join-Path $current 'BUILD.txt') -Value "$($build.Tag)`n$msg" -Encoding utf8
-                    Write-Note "Copied to $current"
-                } catch {
-                    $build.Note = "Not copied to $current (is MailCraft running from there? close it and copy $dest by hand): $($_.Exception.Message)"
+        if (-not $NoBuild) {
+            $cargoEnv = Get-CargoEnv $paths $paths.Patched
+            Write-Note "Rust toolchain: $(if ($cargoEnv.Contains('RUSTUP_TOOLCHAIN')) { $cargoEnv['RUSTUP_TOOLCHAIN'] } else { 'default' })"
+            if ($reg.Settings['run_ci_on_build']) {
+                # Each fix passed `cargo xtask ci` on its own branch; what the combination needs is
+                # to build and pass its tests.
+                $build.Check = if ($FullCi) { 'cargo xtask ci' } else { 'cargo test --locked --workspace' }
+                Write-Step $build.Check
+                $ci = Invoke-CommandLine $build.Check $paths.Patched $cargoEnv
+                $build.Ci = if ($ci.Code -eq 0) { 'passed' } else { 'FAILED' }
+                if ($ci.Code -ne 0) {
+                    $log = Join-Path $paths.Reports "$label-ci.log"
+                    if (-not (Test-Path $paths.Reports)) { New-Item -ItemType Directory $paths.Reports | Out-Null }
+                    [IO.File]::WriteAllText($log, $ci.Output)
+                    $build.Note = "$($build.Check) failed; see $log. No build tag made."
                     Write-Warn $build.Note
                 }
             }
+            if ($build.Ci -ne 'FAILED') {
+                Write-Step 'cargo build --release -p mailcraft -p mailcraft-cli'
+                $rb = Invoke-CommandLine 'cargo build --release -p mailcraft -p mailcraft-cli' $paths.Patched $cargoEnv
+                if ($rb.Code -ne 0) {
+                    $build.Note = "Release build failed:`n$($rb.Output | Select-Object -Last 1)"
+                    Write-Warn 'Release build failed'
+                } else {
+                    # Never v<semver>-*: upstream's release.yml runs on such tags if one reaches the fork.
+                    $suffix = $reg.Settings['build_suffix']
+                    $prefix = "patched/$label-$suffix."
+                    $nums = (Invoke-Git $paths.Repo @('tag', '--list', "$prefix*")).Lines |
+                        ForEach-Object { $_.Substring($prefix.Length) } | Where-Object { $_ -match '^\d+$' } | ForEach-Object { [int]$_ }
+                    $next = 1 + ($nums | Measure-Object -Maximum).Maximum
+                    $build.Tag = "$prefix$next"
+                    $msg = "MailCraft $label with: " + ($(if ($build.Applied) { $build.Applied -join ', ' } else { 'no local fixes' }))
+                    Invoke-Git $paths.Patched @('tag', '-a', $build.Tag, '-m', $msg) | Out-Null
+
+                    $dest = Join-Path $paths.Builds $build.Tag
+                    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+                    $ext = if (Test-IsWindows) { '.exe' } else { '' }
+                    foreach ($bin in @("mailcraft$ext", "mailcraft-cli$ext")) {
+                        $src = Join-Path (Join-Path $paths.PatchedTarget 'release') $bin
+                        if (Test-Path -LiteralPath $src) { Copy-Item -LiteralPath $src -Destination $dest -Force }
+                    }
+                    $build.Binaries = $dest
+                    Write-Note "Tagged $($build.Tag); binaries in $dest"
+
+                    # The taskbar pin points at current\, so it always starts the latest build.
+                    $current = Join-Path $paths.Builds 'current'
+                    New-Item -ItemType Directory -Force -Path $current | Out-Null
+                    try {
+                        Get-ChildItem -LiteralPath $dest -File | Copy-Item -Destination $current -Force -ErrorAction Stop
+                        Set-Content -LiteralPath (Join-Path $current 'BUILD.txt') -Value "$($build.Tag)`n$msg" -Encoding utf8
+                        Write-Note "Copied to $current"
+                    } catch {
+                        $build.Note = "Not copied to $current (is MailCraft running from there? close it and copy $dest by hand): $($_.Exception.Message)"
+                        Write-Warn $build.Note
+                    }
+                }
+            }
+        }
+
+        if ($Push) {
+            Write-Step 'Pushing doug/patched and the build tag to origin'
+            Invoke-Git $paths.Repo @('push', '--force-with-lease', 'origin', 'refs/heads/doug/patched:refs/heads/doug/patched') | Out-Null
+            if ($build.Tag) { Invoke-Git $paths.Repo @('push', 'origin', "refs/tags/$($build.Tag)") | Out-Null }
+            Invoke-Git $paths.Repo @('push', 'origin', 'refs/heads/patch-tools:refs/heads/patch-tools') -AllowFail | Out-Null
         }
     }
 
-    if ($Push) {
-        Write-Step 'Pushing doug/patched and the build tag to origin'
-        Invoke-Git $paths.Repo @('push', '--force-with-lease', 'origin', 'refs/heads/doug/patched:refs/heads/doug/patched') | Out-Null
-        if ($build.Tag) { Invoke-Git $paths.Repo @('push', 'origin', "refs/tags/$($build.Tag)") | Out-Null }
-        Invoke-Git $paths.Repo @('push', 'origin', 'refs/heads/patch-tools:refs/heads/patch-tools') -AllowFail | Out-Null
-    }
-}
+    # ---------------------------------------------------------------- report
 
-# ---------------------------------------------------------------- report
-
-if (-not (Test-Path $paths.Reports)) { New-Item -ItemType Directory $paths.Reports | Out-Null }
-$reportPath = Join-Path $paths.Reports "$label.md"
-$md = New-Object System.Text.StringBuilder
-[void]$md.AppendLine("# Patch sync against $label")
-[void]$md.AppendLine()
-[void]$md.AppendLine("- Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
-[void]$md.AppendLine("- Build base: ``$label`` ($($buildSha.Substring(0, 10)))")
-if ($DryRun) { [void]$md.AppendLine('- Dry run: nothing changed') }
-[void]$md.AppendLine()
-[void]$md.AppendLine('| Patch | Branch | Issue | PR | Result | Evidence |')
-[void]$md.AppendLine('|---|---|---|---|---|---|')
-foreach ($r in $results) {
-    $iss = if ([int]$r.Patch['upstream_issue'] -gt 0) { "[#$($r.Patch['upstream_issue'])](https://github.com/$upstream/issues/$($r.Patch['upstream_issue']))" } else { '' }
-    $prc = if ([int]$r.Patch['upstream_pr'] -gt 0) { "[#$($r.Patch['upstream_pr'])](https://github.com/$upstream/pull/$($r.Patch['upstream_pr']))" } else { '' }
-    [void]$md.AppendLine("| $($r.Id) | ``$($r.Patch['branch'])`` | $iss | $prc | **$($r.Status)** | $($r.Evidence -replace '\|', '/') |")
-}
-if ($results.Count -eq 0) { [void]$md.AppendLine('| (no patches registered) | | | | | |') }
-
-$retire = @($results | Where-Object { $_.Status -eq 'merged' -or $_.Status -eq 'superseded' })
-$conflicts = @($results | Where-Object { $_.Status -eq 'conflict' })
-[void]$md.AppendLine()
-[void]$md.AppendLine('## Next steps')
-[void]$md.AppendLine()
-if ($retire.Count) {
-    [void]$md.AppendLine("- Ready to retire (no longer needed): $(($retire | ForEach-Object { $_.Id }) -join ', '). Confirm, then run ``.\Retire-Patch.ps1 -All``.")
-}
-if ($conflicts.Count) {
-    [void]$md.AppendLine("- Needs your attention (left out of the build): $(($conflicts | ForEach-Object { $_.Id }) -join ', '). Rebase the branch onto upstream/main, re-run Submit-Patch.ps1 -NoPr, then sync again.")
-}
-if (-not $retire.Count -and -not $conflicts.Count) { [void]$md.AppendLine('- Nothing to do.') }
-
-if (-not $DryRun) {
+    if (-not (Test-Path $paths.Reports)) { New-Item -ItemType Directory $paths.Reports | Out-Null }
+    $reportPath = Join-Path $paths.Reports "$label.md"
+    $md = New-Object System.Text.StringBuilder
+    [void]$md.AppendLine("# Patch sync against $label")
     [void]$md.AppendLine()
-    [void]$md.AppendLine('## Build')
+    [void]$md.AppendLine("- Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
+    [void]$md.AppendLine("- Build base: ``$label`` ($($buildSha.Substring(0, 10)))")
+    if ($DryRun) { [void]$md.AppendLine('- Dry run: nothing changed') }
     [void]$md.AppendLine()
-    [void]$md.AppendLine("- Branch ``doug/patched`` = ``$label`` + $(if ($build.Applied) { $build.Applied -join ', ' } else { 'no local fixes' })")
-    if ($build.Failed) { [void]$md.AppendLine("- Left out (conflict): $($build.Failed -join ', ')") }
-    if ($NoBuild) { [void]$md.AppendLine('- Build skipped (-NoBuild)') } else {
-        [void]$md.AppendLine("- cargo xtask ci: $($build.Ci)")
-        if ($build.Tag) { [void]$md.AppendLine("- Tag ``$($build.Tag)``; binaries in ``$($build.Binaries)``") }
-        if ($build.Note) { [void]$md.AppendLine("- $($build.Note)") }
+    [void]$md.AppendLine('| Patch | Branch | Issue | PR | Result | Evidence |')
+    [void]$md.AppendLine('|---|---|---|---|---|---|')
+    foreach ($r in $results) {
+        $iss = if ([int]$r.Patch['upstream_issue'] -gt 0) { "[#$($r.Patch['upstream_issue'])](https://github.com/$upstream/issues/$($r.Patch['upstream_issue']))" } else { '' }
+        $prc = if ([int]$r.Patch['upstream_pr'] -gt 0) { "[#$($r.Patch['upstream_pr'])](https://github.com/$upstream/pull/$($r.Patch['upstream_pr']))" } else { '' }
+        [void]$md.AppendLine("| $($r.Id) | ``$($r.Patch['branch'])`` | $iss | $prc | **$($r.Status)** | $($r.Evidence -replace '\|', '/') |")
     }
-}
-[IO.File]::WriteAllText($reportPath, ($md.ToString() -replace "`r`n", "`n"), (New-Object System.Text.UTF8Encoding($false)))
+    if ($results.Count -eq 0) { [void]$md.AppendLine('| (no patches registered) | | | | | |') }
 
-Write-Host ''
-Write-Host "Report: $reportPath"
-$results | Select-Object Id, Status, Evidence | Format-Table -AutoSize -Wrap
-if ($retire.Count -or $conflicts.Count) { exit 2 }
+    $retire = @($results | Where-Object { $_.Status -eq 'merged' -or $_.Status -eq 'superseded' })
+    $conflicts = @($results | Where-Object { $_.Status -eq 'conflict' })
+    [void]$md.AppendLine()
+    [void]$md.AppendLine('## Next steps')
+    [void]$md.AppendLine()
+    if ($retire.Count) {
+        [void]$md.AppendLine("- Ready to retire (no longer needed): $(($retire | ForEach-Object { $_.Id }) -join ', '). Confirm, then run ``.\Retire-Patch.ps1 -All``.")
+    }
+    if ($conflicts.Count) {
+        [void]$md.AppendLine("- Needs your attention (left out of the build): $(($conflicts | ForEach-Object { $_.Id }) -join ', '). Rebase the branch onto upstream/main, re-run Submit-Patch.ps1 -NoPr, then sync again.")
+    }
+    if (-not $retire.Count -and -not $conflicts.Count) { [void]$md.AppendLine('- Nothing to do.') }
+
+    if (-not $DryRun) {
+        [void]$md.AppendLine()
+        [void]$md.AppendLine('## Build')
+        [void]$md.AppendLine()
+        [void]$md.AppendLine("- Branch ``doug/patched`` = ``$label`` + $(if ($build.Applied) { $build.Applied -join ', ' } else { 'no local fixes' })")
+        if ($build.Failed) { [void]$md.AppendLine("- Left out (conflict): $($build.Failed -join ', ')") }
+        if ($NoBuild) { [void]$md.AppendLine('- Build skipped (-NoBuild)') } else {
+            [void]$md.AppendLine("- $($build.Check): $($build.Ci)")
+            if ($build.Tag) { [void]$md.AppendLine("- Tag ``$($build.Tag)``; binaries in ``$($build.Binaries)``") }
+            if ($build.Note) { [void]$md.AppendLine("- $($build.Note)") }
+        }
+    }
+    [IO.File]::WriteAllText($reportPath, ($md.ToString() -replace "`r`n", "`n"), (New-Object System.Text.UTF8Encoding($false)))
+
+    Write-Host ''
+    Write-Host "Report: $reportPath"
+    $results | Select-Object Id, Status, Evidence | Format-Table -AutoSize -Wrap
+    if ($retire.Count -or $conflicts.Count) { exit 2 }
+} finally {
+    $lock.Dispose()
+}
