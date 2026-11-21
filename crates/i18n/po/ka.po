@@ -1147,7 +1147,7 @@ msgid "Add to Contacts"
 msgstr "კონტაქტებში დამატება"
 
 #. command label, interface
-#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs
+#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
 msgid "Add to Dictionary"
 msgstr ""
 
@@ -3027,6 +3027,11 @@ msgstr ""
 msgid "Certificates"
 msgstr "სერტიფიკატები"
 
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Change"
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -3036,6 +3041,11 @@ msgid ""
 msgstr ""
 "ხედის\n"
 "შეცვლა"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Change All"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/auto_replies.rs
@@ -3108,6 +3118,11 @@ msgstr "ამ ანგარიშის სახელის, სერვ�
 #, fuzzy
 msgid "Change this account's name, sign-in and mail to keep offline"
 msgstr "ამ ანგარიშის სახელის, შესვლისა და ოფლაინ შესანახი ფოსტის შეცვლა"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Change to"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/reading/signature.rs
@@ -3222,6 +3237,11 @@ msgid "Check Recipients"
 msgstr "მიმღებების შემოწმება"
 
 #. interface
+#: crates/ui-egui/src/spelling.rs
+msgid "Check Spelling…"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs
 #, fuzzy
 msgid "Check both servers before you connect."
@@ -3291,6 +3311,11 @@ msgstr "შემოწმდა მისი სასერტიფიკა�
 #, fuzzy
 msgid "Checking for a new version…"
 msgstr "ახალი ვერსიის შემოწმება…"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Checking spelling…"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup.rs
@@ -3508,7 +3533,7 @@ msgid "Clipboard"
 msgstr "გაცვლის ბუფერი"
 
 #. android, interface, ribbon
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AttachmentsView.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/IncomingLayers.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs crates/ui-egui/src/compose.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/find_replace.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/reminders.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/ribbon.rs crates/ui-egui/src/symbol.rs crates/ui-egui/src/sync_panel.rs crates/ui-egui/src/tasks_view.rs crates/ui-egui/src/view_source.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AttachmentsView.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/IncomingLayers.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs crates/ui-egui/src/compose.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/find_replace.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/reminders.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/ribbon.rs crates/ui-egui/src/spelling_dialog.rs crates/ui-egui/src/symbol.rs crates/ui-egui/src/sync_panel.rs crates/ui-egui/src/tasks_view.rs crates/ui-egui/src/view_source.rs
 #, fuzzy
 msgid "Close"
 msgstr "დახურვა"
@@ -4230,6 +4255,11 @@ msgstr "მიმდინარე ხედი"
 #. interface, name
 #: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
 msgid "Custom color"
+#. interface
+#: crates/ui-egui/src/spelling.rs
+msgid "Custom Dictionary…"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/backstage.rs
 msgid "Custom dictionary"
@@ -7167,13 +7197,18 @@ msgid "If you have one, paste its application (client) ID here. It comes from a 
 msgstr "თუ გაქვთ, აქ ჩასვით მისი აპლიკაციის (კლიენტის) ID. ის Microsoft Entra-ს აპლიკაციის რეგისტრაციიდან მოდის: საჯარო კლიენტი გადამისამართების URI-ით http://localhost, ნებისმიერი დირექტორიის ანგარიშებისა და პირადი ანგარიშებისთვის."
 
 #. command label, interface
-#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs
+#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
 msgid "Ignore All"
 msgstr ""
 
 #. interface
 #: crates/ui-egui/src/spelling.rs
 msgid "Ignore All is full."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Ignore Once"
 msgstr ""
 
 #. interface
@@ -10748,6 +10783,11 @@ msgstr "მართლწერის ვარიანტები არ ა
 msgid "No such account"
 msgstr "ასეთი ანგარიში არ არსებობს"
 
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "No suggestions"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/TodayScreen.kt
 #, fuzzy
@@ -10979,6 +11019,11 @@ msgstr "ყველაფრის წაშლა ვერ მოხერხ
 #, fuzzy
 msgid "Not in Outlook's list: no colour there"
 msgstr "Outlook-ის სიაში არ არის: იქ ფერი არ ექნება"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Not in dictionary"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs
@@ -13421,6 +13466,11 @@ msgstr "ჩანაცვლება"
 #, fuzzy
 msgid "Replace All"
 msgstr "ყველას ჩანაცვლება"
+
+#. command label
+#: crates/engine/src/cmd/compose.rs
+msgid "Replace Subject Text"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/format.rs
@@ -15970,7 +16020,7 @@ msgid "Space for mail, at most"
 msgstr "ფოსტისთვის მაქსიმალური ადგილი"
 
 #. interface, ribbon
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/ribbon.rs
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
 msgid "Spelling"
 msgstr "მართლწერა"
@@ -15987,7 +16037,12 @@ msgid "Spelling Options"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/spelling.rs
+#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/spelling_dialog.rs
+msgid "Spelling is off for this message"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
 #, fuzzy
 msgid "Spelling is unavailable on this platform"
 msgstr "ამ პლატფორმაზე მართლწერის შემოწმება მიუწვდომელია"
@@ -16273,6 +16328,11 @@ msgstr "ანგარიშის პარამეტრების შე�
 #, fuzzy
 msgid "Suggest Recipients"
 msgstr "მიმღებთა შემოთავაზება"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Suggestions"
+msgstr ""
 
 #. date and time, name
 #: crates/i18n/src/date.rs crates/time/src/lib.rs
@@ -16827,6 +16887,11 @@ msgstr ""
 #, fuzzy
 msgid "That's as much as a link to GitHub can carry: add the rest on GitHub once the page is open."
 msgstr "ეს არის მაქსიმუმი, რისი გადატანაც GitHub-ის ბმულს შეუძლია: დანარჩენი GitHub-ზე დაამატეთ, როცა გვერდი გაიხსნება."
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "That's the same word."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
@@ -18418,7 +18483,17 @@ msgid "The space the folder's own messages take on this computer"
 msgstr "ადგილი, რომელსაც საქაღალდის საკუთარი წერილები ამ კომპიუტერზე იკავებს"
 
 #. interface
-#: crates/ui-egui/src/spelling.rs
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "The spelling check is complete."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "The spelling check is complete. A part of the message was too long to check."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
 #, fuzzy
 msgid "The spelling dictionary is unavailable"
 msgstr "მართლწერის ლექსიკონი მიუწვდომელია"
@@ -22795,8 +22870,8 @@ msgstr "ამ ძიებიდან სერვერს ვერაფე
 msgid "nothing to redo"
 msgstr "ხელახლა შესასრულებელი არაფერია"
 
-#. what a command says
-#: crates/engine/src/cmd/format.rs
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/compose.rs crates/engine/src/cmd/format.rs
 #, fuzzy
 msgid "nothing to redo in the message"
 msgstr "წერილში ხელახლა შესასრულებელი არაფერია"
@@ -22807,8 +22882,8 @@ msgstr "წერილში ხელახლა შესასრულე�
 msgid "nothing to undo"
 msgstr "დასაბრუნებელი არაფერია"
 
-#. what a command says
-#: crates/engine/src/cmd/format.rs
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/compose.rs crates/engine/src/cmd/format.rs
 #, fuzzy
 msgid "nothing to undo in the message"
 msgstr "წერილში დასაბრუნებელი არაფერია"
@@ -24157,7 +24232,7 @@ msgid "the text has a character that can't be sent"
 msgstr "ტექსტში ისეთი სიმბოლოა, რომლის გაგზავნაც შეუძლებელია"
 
 #. what a command says
-#: crates/model/src/rich/body.rs
+#: crates/engine/src/cmd/compose.rs crates/model/src/rich/body.rs
 #, fuzzy
 msgid "the text has changed at the place to replace"
 msgstr "ჩასანაცვლებელ ადგილას ტექსტი შეიცვალა"
