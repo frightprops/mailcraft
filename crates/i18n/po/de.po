@@ -4060,15 +4060,16 @@ msgstr "Aktuelles Postfach"
 msgid "Current View"
 msgstr "Aktuelle Ansicht"
 
-#. interface, name
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
-msgid "Custom color"
-msgstr "Eigene Farbe"
 #. interface
 #: crates/ui-egui/src/spelling.rs
 #, fuzzy
 msgid "Custom Dictionary…"
 msgstr "Eigenes Wörterbuch…"
+
+#. interface, name
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
+msgid "Custom color"
+msgstr "Eigene Farbe"
 
 #. interface
 #: crates/ui-egui/src/backstage.rs

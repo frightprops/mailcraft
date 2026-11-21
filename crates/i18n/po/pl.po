@@ -4278,14 +4278,16 @@ msgstr "Bieżąca skrzynka pocztowa"
 msgid "Current View"
 msgstr "Bieżący widok"
 
-#. interface, name
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
-msgid "Custom color"
 #. interface
 #: crates/ui-egui/src/spelling.rs
 #, fuzzy
 msgid "Custom Dictionary…"
 msgstr "Słownik niestandardowy…"
+
+#. interface, name
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
+msgid "Custom color"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs

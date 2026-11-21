@@ -4272,14 +4272,16 @@ msgstr "当前邮箱"
 msgid "Current View"
 msgstr "当前视图"
 
-#. interface, name
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
-msgid "Custom color"
 #. interface
 #: crates/ui-egui/src/spelling.rs
 #, fuzzy
 msgid "Custom Dictionary…"
 msgstr "自定义词典…"
+
+#. interface, name
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
+msgid "Custom color"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs
