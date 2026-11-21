@@ -12877,6 +12877,11 @@ msgstr ""
 msgid "Spelling"
 msgstr ""
 
+#. command label
+#: crates/engine/src/cmd/writing_tools.rs
+msgid "Spelling & Grammar"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/spelling.rs
 msgid "Spelling is unavailable on this platform"
@@ -18750,6 +18755,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/import_tree.rs
 msgid "the browser can't read folders by path"
+msgstr ""
+
+#. what a command says
+#: crates/engine/src/cmd/writing_tools.rs
+msgid "the built-in dictionary is unavailable"
 msgstr ""
 
 #. what a command says

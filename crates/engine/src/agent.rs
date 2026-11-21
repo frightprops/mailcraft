@@ -253,6 +253,8 @@ const SAFE: &[&str] = &[
     "insert.symbol",
     "insert.dateTime",
     "review.wordCount",
+    // The message's own words, checked: data, never instructions. Nothing is fetched or changed.
+    "review.spelling",
     // Folders.
     "folder.select",
     "folder.list",
