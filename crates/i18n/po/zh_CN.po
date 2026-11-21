@@ -1068,7 +1068,7 @@ msgid "Add to Contacts"
 msgstr "添加至联系人"
 
 #. command label, interface
-#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs
+#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
 msgid "Add to Dictionary"
 msgstr ""
 
@@ -2918,6 +2918,11 @@ msgstr "庆祝"
 msgid "Certificates"
 msgstr "证书"
 
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Change"
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -2927,6 +2932,11 @@ msgid ""
 msgstr ""
 "更改\n"
 "视图"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Change All"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/auto_replies.rs
@@ -2999,6 +3009,11 @@ msgstr "更改此账户的名称、服务器和登录信息"
 #, fuzzy
 msgid "Change this account's name, sign-in and mail to keep offline"
 msgstr "更改此账户的名称、登录信息和要脱机保留的邮件"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Change to"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/reading/signature.rs
@@ -3113,6 +3128,11 @@ msgid "Check Recipients"
 msgstr "检查收件人"
 
 #. interface
+#: crates/ui-egui/src/spelling.rs
+msgid "Check Spelling…"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs
 #, fuzzy
 msgid "Check both servers before you connect."
@@ -3176,6 +3196,11 @@ msgstr "已通过其证书颁发机构验证"
 #, fuzzy
 msgid "Checking for a new version…"
 msgstr "正在检查新版本…"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Checking spelling…"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup.rs
@@ -3382,7 +3407,7 @@ msgid "Clipboard"
 msgstr "剪贴板"
 
 #. android, interface, ribbon
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AttachmentsView.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/IncomingLayers.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs crates/ui-egui/src/compose.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/find_replace.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/reminders.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/ribbon.rs crates/ui-egui/src/symbol.rs crates/ui-egui/src/sync_panel.rs crates/ui-egui/src/tasks_view.rs crates/ui-egui/src/view_source.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AttachmentsView.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/IncomingLayers.kt crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs crates/ui-egui/src/compose.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/find_replace.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/import_pst.rs crates/ui-egui/src/meeting_dialogs.rs crates/ui-egui/src/meeting_dialogs/share.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/reminders.rs crates/ui-egui/src/report_problem.rs crates/ui-egui/src/ribbon.rs crates/ui-egui/src/spelling_dialog.rs crates/ui-egui/src/symbol.rs crates/ui-egui/src/sync_panel.rs crates/ui-egui/src/tasks_view.rs crates/ui-egui/src/view_source.rs
 #, fuzzy
 msgid "Close"
 msgstr "关闭"
@@ -4076,6 +4101,11 @@ msgstr "当前视图"
 #. interface, name
 #: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
 msgid "Custom color"
+#. interface
+#: crates/ui-egui/src/spelling.rs
+msgid "Custom Dictionary…"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/backstage.rs
 msgid "Custom dictionary"
@@ -6942,13 +6972,18 @@ msgid "If you have one, paste its application (client) ID here. It comes from a 
 msgstr "如果您有应用程序（客户端）ID，请粘贴在此处。它来自 Microsoft Entra 应用注册：公共客户端，重定向 URI 为 http://localhost，支持任意目录中的账户和个人账户。"
 
 #. command label, interface
-#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs
+#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
 msgid "Ignore All"
 msgstr ""
 
 #. interface
 #: crates/ui-egui/src/spelling.rs
 msgid "Ignore All is full."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Ignore Once"
 msgstr ""
 
 #. interface
@@ -10438,6 +10473,11 @@ msgstr "没有拼写建议"
 msgid "No such account"
 msgstr "没有该账户"
 
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "No suggestions"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/TodayScreen.kt
 #, fuzzy
@@ -10659,6 +10699,11 @@ msgstr "无法移除全部内容，仍有一部分保留。请重试。"
 #, fuzzy
 msgid "Not in Outlook's list: no colour there"
 msgstr "不在 Outlook 的列表中：Outlook 中没有对应颜色"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Not in dictionary"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs
@@ -13053,6 +13098,11 @@ msgstr "替换"
 #, fuzzy
 msgid "Replace All"
 msgstr "全部替换"
+
+#. command label
+#: crates/engine/src/cmd/compose.rs
+msgid "Replace Subject Text"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/format.rs
@@ -15556,7 +15606,7 @@ msgid "Space for mail, at most"
 msgstr "邮件占用空间上限"
 
 #. interface, ribbon
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/ribbon.rs
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
 msgid "Spelling"
 msgstr "拼写"
@@ -15573,7 +15623,12 @@ msgid "Spelling Options"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/spelling.rs
+#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/spelling_dialog.rs
+msgid "Spelling is off for this message"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
 #, fuzzy
 msgid "Spelling is unavailable on this platform"
 msgstr "此平台不支持拼写检查"
@@ -15853,6 +15908,11 @@ msgstr "建议账户设置"
 #, fuzzy
 msgid "Suggest Recipients"
 msgstr "建议收件人"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "Suggestions"
+msgstr ""
 
 #. date and time, name
 #: crates/i18n/src/date.rs crates/time/src/lib.rs
@@ -16398,6 +16458,11 @@ msgstr ""
 #, fuzzy
 msgid "That's as much as a link to GitHub can carry: add the rest on GitHub once the page is open."
 msgstr "GitHub 链接可携带的内容已达上限；打开页面后，请在 GitHub 上补充其余内容。"
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "That's the same word."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
@@ -17907,7 +17972,17 @@ msgid "The space the folder's own messages take on this computer"
 msgstr "该文件夹中的邮件在此计算机上占用的空间"
 
 #. interface
-#: crates/ui-egui/src/spelling.rs
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "The spelling check is complete."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/spelling_dialog.rs
+msgid "The spelling check is complete. A part of the message was too long to check."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
 #, fuzzy
 msgid "The spelling dictionary is unavailable"
 msgstr "拼写词典不可用"
@@ -22153,8 +22228,8 @@ msgstr "此搜索的内容均无法交由服务器查找"
 msgid "nothing to redo"
 msgstr "无需重做"
 
-#. what a command says
-#: crates/engine/src/cmd/format.rs
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/compose.rs crates/engine/src/cmd/format.rs
 #, fuzzy
 msgid "nothing to redo in the message"
 msgstr "邮件中没有可重做的操作"
@@ -22165,8 +22240,8 @@ msgstr "邮件中没有可重做的操作"
 msgid "nothing to undo"
 msgstr "没有可撤销的操作"
 
-#. what a command says
-#: crates/engine/src/cmd/format.rs
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/compose.rs crates/engine/src/cmd/format.rs
 #, fuzzy
 msgid "nothing to undo in the message"
 msgstr "邮件中没有可撤销的操作"
@@ -23363,7 +23438,7 @@ msgid "the text has a character that can't be sent"
 msgstr "文本中包含无法发送的字符"
 
 #. what a command says
-#: crates/model/src/rich/body.rs
+#: crates/engine/src/cmd/compose.rs crates/model/src/rich/body.rs
 #, fuzzy
 msgid "the text has changed at the place to replace"
 msgstr "要替换的文本已更改"
