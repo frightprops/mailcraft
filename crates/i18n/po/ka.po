@@ -475,6 +475,10 @@ msgstr "კონკრეტული თარიღი"
 msgid "A desktop alert for the mail this rule acts on as it arrives, while MailCraft isn't the window in front, even when the one for new mail is off in File › Options"
 msgstr "სამუშაო მაგიდის შეტყობინება ფოსტისთვის, რომელზეც ეს წესი მოქმედებს მისვლისას, როცა MailCraft წინა ფანჯარა არ არის, მაშინაც კი, როცა ახალი ფოსტის შეტყობინება გამორთულია ფაილი › პარამეტრებში"
 
+#: crates/ui-egui/src/spelling.rs
+msgid "A dictionary word is letters, digits, apostrophes and hyphens, up to 64 characters."
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/ShareLoad.kt
 #, fuzzy
@@ -913,7 +917,7 @@ msgid "Actual Size"
 msgstr "რეალური ზომა"
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/forms/junk.rs
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/forms/junk.rs
 #, fuzzy
 msgid "Add"
 msgstr "დამატება"
@@ -1141,6 +1145,11 @@ msgstr ""
 #, fuzzy
 msgid "Add to Contacts"
 msgstr "კონტაქტებში დამატება"
+
+#. command label, interface
+#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs
+msgid "Add to Dictionary"
+msgstr ""
 
 #. command label, interface
 #: crates/engine/src/cmd/folder.rs crates/engine/src/cmd/people.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/people_view.rs
@@ -3248,6 +3257,11 @@ msgstr "Check for new fonts"
 msgid "Check for new versions"
 msgstr "ახალი ვერსიების შემოწმება"
 
+#. interface
+#: crates/ui-egui/src/backstage.rs
+msgid "Check spelling as you type"
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -4216,6 +4230,9 @@ msgstr "მიმდინარე ხედი"
 #. interface, name
 #: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
 msgid "Custom color"
+#. interface
+#: crates/ui-egui/src/backstage.rs
+msgid "Custom dictionary"
 msgstr ""
 
 #. command label, interface, name, ribbon
@@ -4388,6 +4405,11 @@ msgstr "შეწევის შემცირება"
 #, fuzzy
 msgid "Default"
 msgstr "ნაგულისხმევი"
+
+#. interface
+#: crates/ui-egui/src/backstage.rs
+msgid "Default spelling language"
+msgstr ""
 
 #. command label, interface, name, ribbon
 #: crates/engine/src/cmd/send_later.rs crates/ui-egui/src/ribbon.rs crates/ui-egui/src/send_later.rs
@@ -5392,6 +5414,11 @@ msgstr "მთავრდება"
 #, fuzzy
 msgid "Ends on a day"
 msgstr "მთავრდება გარკვეულ დღეს"
+
+#. interface
+#: crates/ui-egui/src/spelling.rs
+msgid "English (United States, built-in)"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/send_later.rs
@@ -7139,6 +7166,26 @@ msgstr "თუ თქვენი საკუთარი ადმინის
 msgid "If you have one, paste its application (client) ID here. It comes from a Microsoft Entra app registration: a public client with the redirect URI http://localhost, for accounts in any directory and personal accounts."
 msgstr "თუ გაქვთ, აქ ჩასვით მისი აპლიკაციის (კლიენტის) ID. ის Microsoft Entra-ს აპლიკაციის რეგისტრაციიდან მოდის: საჯარო კლიენტი გადამისამართების URI-ით http://localhost, ნებისმიერი დირექტორიის ანგარიშებისა და პირადი ანგარიშებისთვის."
 
+#. command label, interface
+#: crates/ui-egui/src/lib.rs crates/ui-egui/src/spelling.rs
+msgid "Ignore All"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/spelling.rs
+msgid "Ignore All is full."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/backstage.rs
+msgid "Ignore words in UPPERCASE"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/backstage.rs
+msgid "Ignore words that contain numbers"
+msgstr ""
+
 #. ribbon, ribbon location
 #: crates/engine/src/cmd/picture.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -8360,6 +8407,11 @@ msgstr "კალენდრების ჩამოთვლა"
 #, fuzzy
 msgid "List Contacts"
 msgstr "კონტაქტების ჩამოთვლა"
+
+#. command label
+#: crates/ui-egui/src/lib.rs
+msgid "List Dictionary"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/calendar.rs
@@ -13200,6 +13252,11 @@ msgstr ""
 msgid "Remove from Calendar"
 msgstr "კალენდრიდან ამოშლა"
 
+#. command label
+#: crates/ui-egui/src/lib.rs
+msgid "Remove from Dictionary"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/nav.rs crates/ui-egui/src/people_view.rs
 #, fuzzy
@@ -15912,14 +15969,25 @@ msgstr "ძველი ფოსტის დაკავებული ად
 msgid "Space for mail, at most"
 msgstr "ფოსტისთვის მაქსიმალური ადგილი"
 
-#. ribbon
-#: crates/ui-egui/src/ribbon.rs
+#. interface, ribbon
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
 msgid "Spelling"
 msgstr "მართლწერა"
 
+#. command label
+#: crates/engine/src/cmd/writing_tools.rs
+#, fuzzy
+msgid "Spelling & Grammar"
+msgstr "მართლწერა და გრამატიკა"
+
+#. command label
+#: crates/ui-egui/src/lib.rs
+msgid "Spelling Options"
+msgstr ""
+
 #. interface
-#: crates/ui-egui/src/spelling.rs
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/spelling.rs
 #, fuzzy
 msgid "Spelling is unavailable on this platform"
 msgstr "ამ პლატფორმაზე მართლწერის შემოწმება მიუწვდომელია"
@@ -16750,6 +16818,11 @@ msgid "That sign-in is for somebody else's mailbox, not this account's. Nothing 
 msgstr "ეს შესვლა ვიღაც სხვის საფოსტო ყუთს ეკუთვნის და არა ამ ანგარიშს. არაფერი შენახულა."
 
 #. interface
+#: crates/ui-egui/src/spelling.rs
+msgid "That word isn't in the custom dictionary."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/report_problem.rs
 #, fuzzy
 msgid "That's as much as a link to GitHub can carry: add the rest on GitHub once the page is open."
@@ -17220,6 +17293,11 @@ msgstr "თქვენ მიერ არჩეული კონტაქტ
 #, fuzzy
 msgid "The conversations' messages in other folders stay where they are."
 msgstr "მიმოწერების წერილები სხვა საქაღალდეებში ადგილზე რჩება."
+
+#. interface
+#: crates/ui-egui/src/spelling.rs
+msgid "The custom dictionary is full."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
@@ -20810,6 +20888,11 @@ msgid "Words, from:, to:, category:, on:…"
 msgstr "სიტყვები, from:, to:, category:, on:…"
 
 #. interface
+#: crates/ui-egui/src/backstage.rs
+msgid "Words, separated by commas or spaces"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/address_book.rs crates/ui-egui/src/forms.rs
 #, fuzzy
 msgid "Work"
@@ -23223,6 +23306,11 @@ msgstr "{account}-ის კალენდარი „{calendar}“"
 #, fuzzy
 msgid "the calendar \"{calendar}\" on this computer"
 msgstr "კალენდარი „{calendar}“ ამ კომპიუტერზე"
+
+#. what a command says
+#: crates/engine/src/cmd/writing_tools.rs
+msgid "the built-in dictionary is unavailable"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/calendar/meeting.rs
@@ -26331,6 +26419,13 @@ msgstr[0] "{n} კვირით ადრე"
 msgstr[1] "{n} კვირით ადრე"
 
 #. interface
+#: crates/ui-egui/src/backstage.rs
+msgid "{n} word"
+msgid_plural "{n} words"
+msgstr[0] ""
+msgstr[1] ""
+
+#. interface
 #: crates/ui-egui/src/calendar_sync.rs
 #, fuzzy
 msgid "{n}. {step}: {result} ({answered}). {said}"
@@ -26642,10 +26737,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "Capitalizes after you finish typing a word. Undo restores what you typed."
 #~ msgstr "სიტყვის აკრეფის შემდეგ მის პირველ ასოს ადიდებს. გაუქმება აღადგენს აკრეფილ ტექსტს."
-
-#, fuzzy
-#~ msgid "Spelling & Grammar"
-#~ msgstr "მართლწერა და გრამატიკა"
 
 #, fuzzy
 #~ msgid "As the people you write to see it"
