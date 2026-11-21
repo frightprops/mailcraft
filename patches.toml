@@ -53,7 +53,7 @@ test_cmd = "cargo test -p mailcraft-ui-egui window_restored"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1707 merged as 9350a77477 but not yet in v0.14.0; regression test still fails on v0.14.0 without the fix; issue #1314 closed (completed) by #1707; still needed; applies cleanly to v0.14.0; will be retired once a release contains it"
+evidence = "PR #1707 merged as 9350a77477 but not yet in v0.14.0; issue #1314 closed (completed) by #1707; still needed; applies cleanly to v0.14.0; will be retired once a release contains it"
 notes = "Pop-out stays unresponsive (close button does nothing) after it was minimized while the main window is minimized: eframe keeps its stale minimized state and runs logic-only passes."
 
 [[patch]]
@@ -65,10 +65,10 @@ base_tag = "v0.13.0"
 base_commit = "04e51bb3c23b01f9f5537c5438783848f51465af"
 test_commit = "fe735bfe448d07efccb77b6746eb2540eabd24f2"
 test_cmd = "cargo test -p mailcraft-ui-egui --lib insert_link_pressed_in_a_pop_out"
-status = "active"
+status = "conflict"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1713 is open; regression test still fails on v0.14.0 without the fix; issue #1712 open by #1713; still needed; applies cleanly to v0.14.0"
+evidence = "PR #1713 merged as 61c6f1f53a but not yet in v0.14.0; issue #1712 closed (completed) by #1713; still needed; conflicts with v0.14.0 (rebase the branch, or make backport/v0.14.0/fix/1712-dialog-over-pop-out by hand)"
 notes = "Insert Link (and Word Count, Date and Time, Find) pressed in a pop-out message window opened behind it, over the main window: the dialog was drawn in the main window, which Windows would not bring forward."
 
 [[patch]]
@@ -83,8 +83,23 @@ test_cmd = "cargo test -p mailcraft-ui-egui --lib paste_text_only"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1723 is open; regression test still fails on v0.14.0 without the fix; issue #1721 open by #1723; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/1721-paste-text-only is used"
+evidence = "PR #1723 merged as 84a70ded72 but not yet in v0.14.0; issue #1721 closed (completed) by #1723; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/1721-paste-text-only is used; will be retired once a release contains it"
 notes = "Right-click Paste Text Only in a message body and signature: the clipboard's text without its HTML or picture."
+
+[[patch]]
+id = "paste-text-only-plain"
+branch = "fix/1721-paste-text-only-plain"
+upstream_issue = 1721
+upstream_pr = 1810
+base_tag = "v0.14.0"
+base_commit = "98e53051efa53db5d35b1bc1c18e67721663ebe3"
+test_commit = "bceb96d7c8c2819eb71a8dc05dcd5f2464addc97"
+test_cmd = "cargo test -p mailcraft-ui-egui --lib paste_text_only"
+status = "conflict"
+deprecated_in = ""
+last_checked = "v0.14.0"
+evidence = "PR #1810 is open; issue #1721 closed (completed) by #1723; still needed; conflicts with v0.14.0 (rebase the branch, or make backport/v0.14.0/fix/1721-paste-text-only-plain by hand)"
+notes = "Follow-up to #1723's review: Paste Text Only not offered in a plain-text message (its Paste is the text alone already); fuzzy translations of its label."
 
 [[patch]]
 id = "reply-from-own-account"
@@ -98,7 +113,7 @@ test_cmd = "cargo test -p mailcraft-engine --lib reply_to_first_tests"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1731 is open; regression test still fails on v0.14.0 without the fix; issue #1727 open by #1731; still needed; applies cleanly to v0.14.0"
+evidence = "PR #1731 is open; issue #1727 open by #1731; still needed; applies cleanly to v0.14.0"
 notes = ""
 
 [[patch]]
@@ -113,7 +128,7 @@ test_cmd = "cargo test -p mailcraft-engine picture_tests"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1769 is open; regression test still fails on v0.14.0 without the fix; issue #1310 open by #1769; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/1310-picture-resize is used"
+evidence = "PR #1769 is open; issue #1310 open by #1769; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/1310-picture-resize is used"
 notes = "Resize a picture in the message by its bottom-right corner (compose.picture.set). Filed as #1740, closed as a duplicate of #1310."
 
 [[patch]]
@@ -128,7 +143,7 @@ test_cmd = "cargo test -p mailcraft-ui-egui --lib window_drop_tests"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1743 is open; regression test still fails on v0.14.0 without the fix; issue #1280 open by #1743; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/drop-picture-in-message is used"
+evidence = "PR #1743 is open; issue #1280 open by #1743; still needed; the branch conflicts with v0.14.0, so backport/v0.14.0/fix/drop-picture-in-message is used"
 notes = "A file dropped on a message window of its own (New Email with new messages in a window) was ignored; a picture dropped on a message in HTML now goes into its text at the caret. Filed as #1742, closed in favour of #1280 (which now covers the picture-in-body case too). The branch keeps its first name: renaming a fork branch closes its upstream PR."
 
 [[patch]]
@@ -143,7 +158,7 @@ test_cmd = "cargo test -p mailcraft-engine --lib -- compose_trust_tests:: search
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1781 is open; regression test still fails on v0.14.0 without the fix; issue #1776 open by #1781; still needed; applies cleanly to v0.14.0"
+evidence = "PR #1781 merged as 8b1a73c69f but not yet in v0.14.0; issue #1776 closed (completed) by #1781; still needed; applies cleanly to v0.14.0; will be retired once a release contains it"
 notes = "To/Cc/Bcc suggestions left out the owner's own addresses and listed every matching contact before people mail was sent to; now own addresses are included and the ranking is by sends from Sent Items and the Outbox."
 
 [[patch]]
@@ -153,10 +168,25 @@ upstream_issue = 1793
 upstream_pr = 1796
 base_tag = "v0.14.0"
 base_commit = "33740ca6e6b8ed0743edb49b7e3f728115913944"
-test_commit = "ff5ea77b5aef4409f65dc0fdad73367276fae528"
+test_commit = "14c72c8e7dee720a891f8c7620f0098cbfe514b9"
 test_cmd = "cargo test -p mailcraft-engine --lib paste_link_tests"
 status = "active"
 deprecated_in = ""
 last_checked = "v0.14.0"
-evidence = "PR #1796 is open; regression test still fails on v0.14.0 without the fix; issue #1793 open by #1796; still needed; applies cleanly to v0.14.0"
+evidence = "PR #1796 is open; issue #1793 open by #1796; still needed; applies cleanly to v0.14.0"
 notes = "Automatically hotlink URLs pasted into HTML messages and signatures."
+
+[[patch]]
+id = "builtin-spelling"
+branch = "fix/1797-builtin-spelling"
+upstream_issue = 1797
+upstream_pr = 0
+base_tag = "v0.14.0"
+base_commit = "33740ca6e6b8ed0743edb49b7e3f728115913944"
+test_commit = ""
+test_cmd = ""
+status = "active"
+deprecated_in = ""
+last_checked = ""
+evidence = ""
+notes = "Built-in SCOWL en_US checker (mailcraft-spell), options, custom dictionary, Subject, review.spelling/F7. Builds on #1635: sync with -Base main until a release contains it."
