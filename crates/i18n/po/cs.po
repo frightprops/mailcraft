@@ -4102,14 +4102,16 @@ msgstr "Aktuální poštovní schránka"
 msgid "Current View"
 msgstr "Aktuální zobrazení"
 
-#. interface, name
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
-msgid "Custom color"
 #. interface
 #: crates/ui-egui/src/spelling.rs
 #, fuzzy
 msgid "Custom Dictionary…"
 msgstr "Vlastní slovník…"
+
+#. interface, name
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
+msgid "Custom color"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs

@@ -3411,12 +3411,14 @@ msgstr ""
 msgid "Current View"
 msgstr ""
 
-#. interface, name
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
-msgid "Custom color"
 #. interface
 #: crates/ui-egui/src/spelling.rs
 msgid "Custom Dictionary…"
+msgstr ""
+
+#. interface, name
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
+msgid "Custom color"
 msgstr ""
 
 #. interface
