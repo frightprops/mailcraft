@@ -242,12 +242,37 @@ try {
                     Write-Note "applied $($r.Id)"
                 } else {
                     Invoke-Git $wt @('cherry-pick', '--abort') -AllowFail | Out-Null
-                    $build.Failed += $r.Id
-                    $r.Status = 'conflict'
-                    $r.Patch['status'] = 'conflict'
-                    $r.Evidence += '; conflicts with the other fixes in doug/patched'
-                    $r.Patch['evidence'] = $r.Evidence
-                    Write-Warn "$($r.Id) conflicts with the fixes before it; left out"
+                    $stackBranch = "stack/$($r.Patch['branch'])"
+                    $stackRef = Resolve-PatchRef $paths.Repo $stackBranch
+                    $stackCommits = New-Object System.Collections.ArrayList
+                    if ($stackRef) {
+                        foreach ($line in (Invoke-Git $wt @('cherry', 'HEAD', $stackRef)).Lines) {
+                            if ($line -match '^- ') { $stackCommits.Clear() }
+                            elseif ($line -match '^\+ ([0-9a-f]{40})$') { [void]$stackCommits.Add($Matches[1]) }
+                        }
+                    }
+                    $stackApplied = $false
+                    if ($stackCommits.Count -gt 0) {
+                        $sp = Invoke-Git $wt (@('cherry-pick', '-x') + @($stackCommits)) -AllowFail
+                        if ($sp.Code -eq 0) {
+                            $stackApplied = $true
+                            $build.Applied += $r.Id
+                            $r.Evidence += "; stacked in doug/patched via $stackBranch"
+                            $r.Patch['evidence'] = $r.Evidence
+                            Write-Note "applied $($r.Id) (via $stackBranch)"
+                        } else {
+                            Invoke-Git $wt @('cherry-pick', '--abort') -AllowFail | Out-Null
+                        }
+                    }
+                    if (-not $stackApplied) {
+                        $how = if ($stackRef) { "$stackBranch doesn't apply either" } else { "make $stackBranch on doug/patched" }
+                        $build.Failed += $r.Id
+                        $r.Status = 'conflict'
+                        $r.Patch['status'] = 'conflict'
+                        $r.Evidence += "; conflicts with the other fixes in doug/patched ($how)"
+                        $r.Patch['evidence'] = $r.Evidence
+                        Write-Warn "$($r.Id) conflicts with the fixes before it ($how); left out"
+                    }
                 }
             }
             $composed = Get-Sha $wt 'HEAD'

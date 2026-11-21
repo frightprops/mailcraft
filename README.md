@@ -163,3 +163,15 @@ cd ..\mailcraft-patches
 .\Submit-Patch.ps1 -Id custom-font-colour -NoPr   # re-checks the test, records the new test commit
 .\Sync-Patches.ps1
 ```
+
+When two active fixes apply cleanly to the build base on their own (so each upstream pull request is
+clean) yet touch the same lines as each other in `doug/patched`, keep both `fix/*` branches based on
+`upstream/main` and make a stack branch `stack/<fix branch>` on top of the earlier active fixes in
+`doug/patched`, picking the later fix's commits and resolving the overlap:
+
+```powershell
+cd ..\mailcraft
+git switch -c stack/fix/1797-builtin-spelling doug/patched
+git cherry-pick -x upstream/main..fix/1797-builtin-spelling   # resolve, git add, git cherry-pick --continue
+git push origin stack/fix/1797-builtin-spelling
+```
