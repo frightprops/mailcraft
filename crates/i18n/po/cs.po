@@ -18624,9 +18624,8 @@ msgstr "Kontrola pravopisu je dokončena."
 
 #. interface
 #: crates/ui-egui/src/spelling_dialog.rs
-#, fuzzy
-msgid "The spelling check is complete. A part of the message was too long to check."
-msgstr "Kontrola pravopisu je dokončena. Část zprávy byla na kontrolu příliš dlouhá."
+msgid "The spelling check is complete. Some of the message was not checked."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
@@ -24402,7 +24401,7 @@ msgid "the text has a character that can't be sent"
 msgstr "text obsahuje znak, který nelze odeslat"
 
 #. what a command says
-#: crates/engine/src/cmd/compose.rs crates/model/src/rich/body.rs
+#: crates/engine/src/cmd/compose.rs crates/engine/src/cmd/edit.rs crates/model/src/rich/body.rs
 #, fuzzy
 msgid "the text has changed at the place to replace"
 msgstr "text určený k nahrazení se změnil"
@@ -27114,6 +27113,9 @@ msgstr "−Řádky"
 #~ msgstr[0] "{n} zpráva odpovídá"
 #~ msgstr[1] "{n} zprávy odpovídají"
 #~ msgstr[2] "{n} zpráv odpovídá"
+
+#~ msgid "The spelling check is complete. A part of the message was too long to check."
+#~ msgstr "Kontrola pravopisu je dokončena. Část zprávy byla na kontrolu příliš dlouhá."
 
 #, fuzzy
 #~ msgid "Capitalize the first word of sentences"

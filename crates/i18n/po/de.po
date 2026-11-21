@@ -17468,9 +17468,8 @@ msgstr "Die Rechtschreibprüfung ist abgeschlossen."
 
 #. interface
 #: crates/ui-egui/src/spelling_dialog.rs
-#, fuzzy
-msgid "The spelling check is complete. A part of the message was too long to check."
-msgstr "Die Rechtschreibprüfung ist abgeschlossen. Ein Teil der Nachricht war zu lang für die Prüfung."
+msgid "The spelling check is complete. Some of the message was not checked."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/spelling.rs crates/ui-egui/src/spelling_dialog.rs
@@ -22929,7 +22928,7 @@ msgid "the text has a character that can't be sent"
 msgstr "Der Text enthält ein Zeichen, das nicht gesendet werden kann"
 
 #. what a command says
-#: crates/engine/src/cmd/compose.rs crates/model/src/rich/body.rs
+#: crates/engine/src/cmd/compose.rs crates/engine/src/cmd/edit.rs crates/model/src/rich/body.rs
 #, fuzzy
 msgid "the text has changed at the place to replace"
 msgstr "der zu ersetzende Text hat sich geändert"
@@ -25371,6 +25370,10 @@ msgstr "−Zeilen"
 #~ msgid_plural "{n} messages matched"
 #~ msgstr[0] "{n} Nachricht gefunden"
 #~ msgstr[1] "{n} Nachrichten gefunden"
+
+#, fuzzy
+#~ msgid "The spelling check is complete. A part of the message was too long to check."
+#~ msgstr "Die Rechtschreibprüfung ist abgeschlossen. Ein Teil der Nachricht war zu lang für die Prüfung."
 
 #, fuzzy
 #~ msgid "Capitalize the first word of sentences"
