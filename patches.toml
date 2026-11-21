@@ -110,7 +110,7 @@ deprecated_in = ""
 last_checked = "v0.14.0-main-7528f83a58"
 check_key = "7528f83a5863771afbc68c5889f4f52e60087ea9 bceb96d7c8c2819eb71a8dc05dcd5f2464addc97 cargo test -p mailcraft-ui-egui --lib paste_text_only"
 check_verdict = "fail"
-evidence = "PR #1810 is open; regression test still fails on v0.14.0-main-7528f83a58 without the fix; issue #1721 closed (completed) by #1723; still needed; applies cleanly to v0.14.0-main-7528f83a58"
+evidence = "PR #1810 is open; regression test still fails on v0.14.0-main-7528f83a58 without the fix (kept from an earlier sync: same base, test commit and command); issue #1721 closed (completed) by #1723; still needed; applies cleanly to v0.14.0-main-7528f83a58"
 notes = "Follow-up to #1723's review: Paste Text Only not offered in a plain-text message (its Paste is the text alone already); fuzzy translations of its label."
 
 [[patch]]
@@ -127,7 +127,7 @@ deprecated_in = ""
 last_checked = "v0.14.0-main-7528f83a58"
 check_key = "7528f83a5863771afbc68c5889f4f52e60087ea9 262fd3536bfacd375c7cb80cbbbaf7a245acfdd8 cargo test -p mailcraft-engine --lib reply_to_first_tests"
 check_verdict = "fail"
-evidence = "PR #1731 is open; recorded test_commit no longer on the branch; using its first commit; regression test still fails on v0.14.0-main-7528f83a58 without the fix; issue #1727 open by #1731; still needed; applies cleanly to v0.14.0-main-7528f83a58"
+evidence = "PR #1731 is open; recorded test_commit no longer on the branch; using its first commit; regression test still fails on v0.14.0-main-7528f83a58 without the fix (kept from an earlier sync: same base, test commit and command); issue #1727 open by #1731; still needed; applies cleanly to v0.14.0-main-7528f83a58"
 notes = ""
 
 [[patch]]
@@ -161,7 +161,7 @@ deprecated_in = ""
 last_checked = "v0.14.0-main-7528f83a58"
 check_key = "7528f83a5863771afbc68c5889f4f52e60087ea9 002ccf3d4cb6c2d3697e92771f0827808d6f1ab1 cargo test -p mailcraft-ui-egui --lib window_drop_tests"
 check_verdict = "fail"
-evidence = "PR #1743 is open; regression test still fails on v0.14.0-main-7528f83a58 without the fix; issue #1280 open by #1743; still needed; applies cleanly to v0.14.0-main-7528f83a58"
+evidence = "PR #1743 is open; regression test still fails on v0.14.0-main-7528f83a58 without the fix (kept from an earlier sync: same base, test commit and command); issue #1280 open by #1743; still needed; applies cleanly to v0.14.0-main-7528f83a58"
 notes = "A file dropped on a message window of its own (New Email with new messages in a window) was ignored; a picture dropped on a message in HTML now goes into its text at the caret. Filed as #1742, closed in favour of #1280 (which now covers the picture-in-body case too). The branch keeps its first name: renaming a fork branch closes its upstream PR."
 
 [[patch]]
@@ -195,7 +195,7 @@ deprecated_in = ""
 last_checked = "v0.14.0-main-7528f83a58"
 check_key = "7528f83a5863771afbc68c5889f4f52e60087ea9 14c72c8e7dee720a891f8c7620f0098cbfe514b9 cargo test -p mailcraft-engine --lib paste_link_tests"
 check_verdict = "fail"
-evidence = "PR #1796 is open; regression test still fails on v0.14.0-main-7528f83a58 without the fix; issue #1793 open by #1796; still needed; applies cleanly to v0.14.0-main-7528f83a58"
+evidence = "PR #1796 is open; regression test still fails on v0.14.0-main-7528f83a58 without the fix (kept from an earlier sync: same base, test commit and command); issue #1793 open by #1796; still needed; applies cleanly to v0.14.0-main-7528f83a58"
 notes = "Automatically hotlink URLs pasted into HTML messages and signatures."
 
 [[patch]]
@@ -212,5 +212,5 @@ deprecated_in = ""
 last_checked = "v0.14.0-main-7528f83a58"
 check_key = "7528f83a5863771afbc68c5889f4f52e60087ea9 72300a5bca261f8e9474121fc3266c3b1f9ceb32 cargo test -p mailcraft-engine review_spelling_"
 check_verdict = "fail"
-evidence = "PR #1817 is open; regression test still fails on v0.14.0-main-7528f83a58 without the fix; issue #1797 open by #1817; still needed; applies cleanly to v0.14.0-main-7528f83a58; stacked in doug/patched via stack/fix/1797-builtin-spelling"
+evidence = "PR #1817 is open; regression test still fails on v0.14.0-main-7528f83a58 without the fix (kept from an earlier sync: same base, test commit and command); issue #1797 open by #1817; still needed; applies cleanly to v0.14.0-main-7528f83a58; stacked in doug/patched via stack/fix/1797-builtin-spelling"
 notes = "Built-in SCOWL en_US checker (mailcraft-spell), options, custom dictionary, Subject, review.spelling/F7. Builds on #1635: sync with -Base main until a release contains it."
