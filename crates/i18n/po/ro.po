@@ -4116,14 +4116,16 @@ msgstr "Cutia poștală curentă"
 msgid "Current View"
 msgstr "Vizualizarea curentă"
 
-#. interface, name
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
-msgid "Custom color"
 #. interface
 #: crates/ui-egui/src/spelling.rs
 #, fuzzy
 msgid "Custom Dictionary…"
 msgstr "Dicționar personalizat…"
+
+#. interface, name
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
+msgid "Custom color"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs

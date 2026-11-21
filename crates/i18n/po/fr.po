@@ -4097,14 +4097,16 @@ msgstr "Boîte aux lettres actuelle"
 msgid "Current View"
 msgstr "Affichage actuel"
 
-#. interface, name
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
-msgid "Custom color"
 #. interface
 #: crates/ui-egui/src/spelling.rs
 #, fuzzy
 msgid "Custom Dictionary…"
 msgstr "Dictionnaire personnel…"
+
+#. interface, name
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/theme/accent.rs
+msgid "Custom color"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs
