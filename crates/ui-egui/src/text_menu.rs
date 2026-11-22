@@ -170,16 +170,17 @@ pub(crate) fn menu_item(ui: &mut Ui, enabled: bool, label: &str, key: &str) -> R
     ui.add_enabled(enabled, button)
 }
 
-/// The items for a text of `kind` that takes `takes`, `selected` whether anything is selected in
-/// it, `paste` whether there is a clipboard to paste from. What was chosen; the menu shuts then.
-fn items(ui: &mut Ui, kind: Kind, takes: Takes, selected: bool, paste: bool) -> (Option<Item>, bool) {
+/// The items for a text of `kind` that takes `takes`, `plain` whether Paste already brings text
+/// alone, `selected` whether anything is selected in it, `paste` whether there is a clipboard to
+/// paste from. What was chosen; the menu shuts then.
+fn items(ui: &mut Ui, kind: Kind, takes: Takes, plain: bool, selected: bool, paste: bool) -> (Option<Item>, bool) {
     let (mut chosen, mut keyboard) = (None, false);
     let edits = kind == Kind::Text;
     let shown = [
         (edits, selected, "Cut", "Mod+X", Item::Cut),
         (kind != Kind::Secret, selected, "Copy", "Mod+C", Item::Copy),
         (kind != Kind::ReadOnly, paste, "Paste", "Mod+V", Item::Paste),
-        (edits && takes == Takes::Pictures, paste, tl_later!("Paste Text Only"), "", Item::PasteText),
+        (edits && takes == Takes::Pictures && !plain, paste, tl_later!("Paste Text Only"), "", Item::PasteText),
         (kind != Kind::Secret, true, "Select All", "Mod+A", Item::SelectAll),
     ];
     for (offered, enabled, label, key, item) in shown {
@@ -205,10 +206,10 @@ fn items(ui: &mut Ui, kind: Kind, takes: Takes, selected: bool, paste: bool) -> 
 /// has its menu as a submenu of it instead: open by its own note ([`Nested`]), and counted by the
 /// drop-down as one of its own (`MenuState`), so that neither closes the other.
 fn menu(resp: &Response, kind: Kind, selected: bool, takes: Takes) {
-    menu_with(resp, kind, selected, takes, |_| false);
+    menu_with(resp, kind, selected, takes, false, |_| false);
 }
 
-fn menu_with(resp: &Response, kind: Kind, selected: bool, takes: Takes, mut extra: impl FnMut(&mut Ui) -> bool) {
+fn menu_with(resp: &Response, kind: Kind, selected: bool, takes: Takes, plain: bool, mut extra: impl FnMut(&mut Ui) -> bool) {
     let ctx = &resp.ctx;
     let id = Popup::default_response_id(resp);
     let pass = ctx.cumulative_pass_nr();
@@ -228,7 +229,7 @@ fn menu_with(resp: &Response, kind: Kind, selected: bool, takes: Takes, mut extr
     let (mut chosen, mut keyboard) = (None, false);
     let mut contents = |ui: &mut Ui| {
         let extra_keyboard = extra(ui);
-        (chosen, keyboard) = items(ui, kind, takes, selected, paste);
+        (chosen, keyboard) = items(ui, kind, takes, plain, selected, paste);
         keyboard |= extra_keyboard;
     };
     let open = match nested.as_mut() {
@@ -389,15 +390,16 @@ fn attach(resp: Response, kind: Kind) -> Response {
 
 fn open_field_menu(resp: Response, kind: Kind, extra: impl FnMut(&mut Ui) -> bool) -> Response {
     let selected = field_selected(&resp);
-    menu_with(&resp, kind, selected, Takes::Text, extra);
+    menu_with(&resp, kind, selected, Takes::Text, false, extra);
     resp
 }
 
 /// The body of a message being written, or a signature being edited, `resp`, with the menu;
-/// `selected`: whether anything is selected in it; `takes`: what a paste brings into it. (Where a
-/// right click puts the caret is the body's own.)
-pub(crate) fn body(resp: &Response, selected: bool, takes: Takes, extra: impl FnMut(&mut Ui) -> bool) {
-    menu_with(resp, Kind::Text, selected, takes, extra);
+/// `selected`: whether anything is selected in it; `takes`: what a paste brings into it; `plain`:
+/// the message is plain text, where Paste brings the text alone and Paste Text Only isn't offered.
+/// (Where a right click puts the caret is the body's own.)
+pub(crate) fn body(resp: &Response, selected: bool, takes: Takes, plain: bool, extra: impl FnMut(&mut Ui) -> bool) {
+    menu_with(resp, Kind::Text, selected, takes, plain, extra);
 }
 
 /// What was chosen this pass becomes its input, for [`deliver`]. The extra pass asked for runs in
