@@ -12,9 +12,9 @@
       4. Issue state: the upstream issue's state is added as evidence (closed as not planned is flagged)
       5. Otherwise: the fix is applied to the build base on trial -> active, or conflict
     Then (unless -DryRun) patches.toml gets each status, doug/patched is recreated as
-    build base + active fixes, built (`cargo test --locked --workspace`, or `cargo xtask ci` with
-    -FullCi, then a release build), tagged patched/<tag>-<suffix>.<n>, and the binaries copied
-    to builds_path.
+    build base + active fixes, built (`cargo nextest run` (or `cargo test`) `--locked --workspace`,
+    or `cargo xtask ci` with -FullCi, then a release build), tagged patched/<tag>-<suffix>.<n>,
+    and the binaries copied to builds_path.
     Retiring merged and superseded fixes is a separate, deliberate step: Retire-Patch.ps1.
 
 .PARAMETER Base
@@ -30,8 +30,8 @@
 .PARAMETER Recheck
     Run check 3 for every fix, even one whose last result still stands.
 .PARAMETER FullCi
-    Check the build with `cargo xtask ci` (fmt, clippy, wasm, cargo-deny, ...) instead of the
-    workspace tests alone.
+    Check the build with `cargo xtask ci` (fmt, clippy, wasm, cargo-deny, ...) instead of
+    `cargo nextest run` (or `cargo test`) `--locked --workspace`.
 .PARAMETER Push
     Push doug/patched and the build tag to origin.
 #>
@@ -148,7 +148,7 @@ try {
                     } else {
                         $testVerdict = 'does-not-apply'
                     }
-                } finally { Remove-ScratchWorktree $paths.Repo $wt }
+                } finally { Reset-ScratchWorktree $wt }
                 $p['check_key'] = $checkKey
                 $p['check_verdict'] = $testVerdict
             }
@@ -186,7 +186,7 @@ try {
                 } else {
                     $status = 'conflict'
                 }
-            } finally { Remove-ScratchWorktree $paths.Repo $wt }
+            } finally { Reset-ScratchWorktree $wt }
             # The fix rebuilt by hand for this build base (README: "Fixing a conflict").
             if ($status -eq 'conflict') {
                 $backport = "backport/$label/$($p['branch'])"
@@ -203,7 +203,7 @@ try {
                             $commits = $bpCommits
                             [void]$evidence.Add("still needed; the branch conflicts with $label, so $backport is used")
                         }
-                    } finally { Remove-ScratchWorktree $paths.Repo $wt }
+                    } finally { Reset-ScratchWorktree $wt }
                 }
                 if ($status -eq 'conflict') {
                     $how = if ($bpRef) { "$backport doesn't apply either" } else { "rebase the branch, or make $backport by hand" }
@@ -275,8 +275,9 @@ try {
                     }
                 }
             }
+            # The commits stay in the shared object store; doug/patched checks this sha out next.
             $composed = Get-Sha $wt 'HEAD'
-        } finally { Remove-ScratchWorktree $paths.Repo $wt }
+        } finally { Reset-ScratchWorktree $wt }
         if (-not (Test-Path -LiteralPath $paths.Patched)) {
             Invoke-Git $paths.Repo @('worktree', 'add', '-B', 'doug/patched', $paths.Patched, $composed) | Out-Null
         } else {
@@ -292,7 +293,13 @@ try {
             if ($reg.Settings['run_ci_on_build']) {
                 # Each fix passed `cargo xtask ci` on its own branch; what the combination needs is
                 # to build and pass its tests.
-                $build.Check = if ($FullCi) { 'cargo xtask ci' } else { 'cargo test --locked --workspace' }
+                if ($FullCi) {
+                    $build.Check = 'cargo xtask ci'
+                } else {
+                    $nextest = Invoke-CommandLine 'cargo nextest --version' $paths.Patched $cargoEnv
+                    if ($nextest.Code -eq 0) { $build.Check = 'cargo nextest run --locked --workspace --no-fail-fast' }
+                    else { $build.Check = 'cargo test --locked --workspace' }
+                }
                 Write-Step $build.Check
                 $ci = Invoke-CommandLine $build.Check $paths.Patched $cargoEnv
                 $build.Ci = if ($ci.Code -eq 0) { 'passed' } else { 'FAILED' }

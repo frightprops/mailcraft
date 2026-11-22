@@ -43,8 +43,8 @@ $script:RegistryHeader = @'
 #   builds_path     where finished binaries are copied, one folder per build tag
 #   build_base      "tag" = latest upstream release tag, "main" = upstream/main
 #   build_suffix    build tags are patched/<tag>-<build_suffix>.<n>
-#   run_ci_on_build run `cargo test --locked --workspace` (with -FullCi, `cargo xtask ci`) before
-#                   the release build
+#   run_ci_on_build run `cargo nextest run` (or `cargo test`) `--locked --workspace` (with -FullCi,
+#                   `cargo xtask ci`) before the release build
 #
 # [[patch]]
 #   id              short name for the fix
@@ -359,12 +359,64 @@ function Get-ForkOwner {
 
 # ---------------------------------------------------------------- scratch worktrees
 
+# One element would unwrap to a string on the way out; the comma keeps the array.
+function Get-WorktreePaths {
+    param([string] $Repo)
+    $paths = New-Object System.Collections.ArrayList
+    foreach ($line in @((Invoke-Git $Repo @('worktree', 'list', '--porcelain')).Lines)) {
+        if ($line.StartsWith('worktree ')) { [void]$paths.Add($line.Substring(9)) }
+    }
+    return ,$paths.ToArray()
+}
+
+function Test-SamePath {
+    param([string] $Left, [string] $Right)
+    $a = [IO.Path]::GetFullPath($Left).TrimEnd('\', '/')
+    $b = [IO.Path]::GetFullPath($Right).TrimEnd('\', '/')
+    if (Test-IsWindows) { return $a.Equals($b, [StringComparison]::OrdinalIgnoreCase) }
+    return ($a -ceq $b)
+}
+
+function Test-PathUnder {
+    param([string] $Root, [string] $Child)
+    $rootFull = [IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
+    $childFull = [IO.Path]::GetFullPath($Child).TrimEnd('\', '/')
+    $prefix = $rootFull + [IO.Path]::DirectorySeparatorChar
+    if (Test-IsWindows) { return $childFull.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) }
+    return $childFull.StartsWith($prefix)
+}
+
+function Test-RegisteredWorktree {
+    param([string] $Repo, [string] $Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    foreach ($w in (Get-WorktreePaths $Repo)) {
+        if (Test-SamePath $w $Path) { return $true }
+    }
+    return $false
+}
+
+# One checkout named check, whatever $Name is: Cargo fingerprints store absolute source paths,
+# so a new folder would rebuild every crate. Git rewrites only files that differ.
 function New-ScratchWorktree {
     param([string] $Repo, [string] $ScratchRoot, [string] $Name, [string] $Ref)
     if (-not (Test-Path -LiteralPath $ScratchRoot)) { New-Item -ItemType Directory -Path $ScratchRoot | Out-Null }
-    $path = Join-Path $ScratchRoot $Name
-    Remove-ScratchWorktree -Repo $Repo -Path $path
-    Invoke-Git $Repo @('worktree', 'add', '--detach', '--force', $path, $Ref) | Out-Null
+    $path = Join-Path $ScratchRoot 'check'
+    # Per-patch folders from before this one checkout.
+    foreach ($other in (Get-WorktreePaths $Repo)) {
+        if ((Test-PathUnder $ScratchRoot $other) -and -not (Test-SamePath $other $path)) {
+            Invoke-Git $Repo @('worktree', 'remove', '--force', $other) -AllowFail | Out-Null
+        }
+    }
+    Invoke-Git $Repo @('worktree', 'prune') -AllowFail | Out-Null
+    if (Test-RegisteredWorktree $Repo $path) {
+        Invoke-Git $path @('cherry-pick', '--abort') -AllowFail | Out-Null
+        Invoke-Git $path @('reset', '--hard', '--quiet') | Out-Null
+        Invoke-Git $path @('checkout', '--force', '--quiet', '--detach', $Ref) | Out-Null
+        Invoke-Git $path @('clean', '-ffdxq') | Out-Null
+    } else {
+        Remove-ScratchWorktree -Repo $Repo -Path $path
+        Invoke-Git $Repo @('worktree', 'add', '--detach', '--force', $path, $Ref) | Out-Null
+    }
     return $path
 }
 
@@ -375,6 +427,15 @@ function Remove-ScratchWorktree {
         if (Test-Path -LiteralPath $Path) { Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue }
     }
     Invoke-Git $Repo @('worktree', 'prune') -AllowFail | Out-Null
+}
+
+# Abort a cherry-pick and drop untracked files, but keep the checkout for the next check.
+function Reset-ScratchWorktree {
+    param([string] $Path)
+    if (-not $Path -or -not (Test-Path -LiteralPath $Path)) { return }
+    Invoke-Git $Path @('cherry-pick', '--abort') -AllowFail | Out-Null
+    Invoke-Git $Path @('reset', '--hard', '--quiet') -AllowFail | Out-Null
+    Invoke-Git $Path @('clean', '-ffdxq') -AllowFail | Out-Null
 }
 
 # Applies commits without committing. Returns $true when they all applied cleanly.

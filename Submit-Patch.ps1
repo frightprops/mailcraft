@@ -67,7 +67,7 @@ try {
         try {
             if (-not (Add-CommitsNoCommit $wt @($testCommit))) { throw 'The test commit does not apply to upstream/main on its own.' }
             $verdict = Get-TestVerdict (Invoke-CommandLine $patch['test_cmd'] $wt (Get-CargoEnv $paths $wt))
-        } finally { Remove-ScratchWorktree $paths.Repo $wt }
+        } finally { Reset-ScratchWorktree $wt }
         Write-Note "Result: $verdict"
         if ($verdict -ne 'fail') { throw "Without the fix the test must fail, but it gave '$verdict'. Fix the test or -TestCmd." }
 
@@ -75,7 +75,7 @@ try {
         $wt = New-ScratchWorktree $paths.Repo $paths.Scratch "submit-$Id" $ref
         try {
             $verdict = Get-TestVerdict (Invoke-CommandLine $patch['test_cmd'] $wt (Get-CargoEnv $paths $wt))
-        } finally { Remove-ScratchWorktree $paths.Repo $wt }
+        } finally { Reset-ScratchWorktree $wt }
         Write-Note "Result: $verdict"
         if ($verdict -ne 'pass') { throw "With the fix the test must pass, but it gave '$verdict'." }
     }

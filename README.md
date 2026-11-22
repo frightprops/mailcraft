@@ -11,7 +11,8 @@ fixes organised so that each one can be dropped as soon as upstream
 | `mailcraft/` | Working clone. Remotes: `origin` = your fork, `upstream` = UCS-Care-Group. Fix branches are made here. |
 | `mailcraft-patches/` | This branch, as a git worktree: registry, scripts, reports. |
 | `mailcraft-patched/` | Worktree of `doug/patched`, the branch that is built and run. Recreated on every sync. |
-| `mailcraft-target-sync/` | The scripts' own Cargo build folders: `patched\` (only `mailcraft-patched` builds there) and `scratch\` (the regression-test checks). Nothing else builds in it; see [Keeping syncs fast](#keeping-syncs-fast). |
+| `E:\cargo\sync\` | The scripts' own Cargo build folders: `patched\` (only `mailcraft-patched` builds there) and `scratch\` (the regression-test checks). Nothing else builds in it; see [Keeping syncs fast](#keeping-syncs-fast). |
+| `E:\cargo\sync-tmp\check` | One reused checkout for the checks and for putting `doug/patched` together. |
 | `mailcraft-builds/<tag>/` | Finished `mailcraft.exe` and `mailcraft-cli.exe` for each build tag. |
 | `mailcraft-builds/current/` | A copy of the latest build (`BUILD.txt` says which); the taskbar pin starts this one. Close MailCraft before a sync so it can be replaced. |
 
@@ -96,23 +97,27 @@ Then, once you agree with it:
 
 A sync after a fix changes should take minutes, not hours. What keeps it that way:
 
-- **Its own build folders.** Cargo names a workspace crate's output by its path within the
-  workspace, so two MailCraft checkouts building in one folder overwrite each other's crates, and
-  one can link the other's (a build that "can't find" a function the tree has). Only
-  `mailcraft-patched` builds in `mailcraft-target-sync\patched`, so it stays incremental; the
-  scratch checks build in `scratch\`. **Agents and hand builds never use `mailcraft-target-sync`**:
-  give each checkout its own `CARGO_TARGET_DIR`.
+- **Its own build folders, on the E: Dev Drive.** Cargo names a workspace crate's output by its
+  path within the workspace, so two MailCraft checkouts building in one folder overwrite each
+  other's crates, and one can link the other's (a build that "can't find" a function the tree has).
+  Only `mailcraft-patched` builds in `E:\cargo\sync\patched`, so it stays incremental; the scratch
+  checks build in `scratch\`. **Agents and hand builds never use the scripts' build folders**:
+  give each checkout its own `CARGO_TARGET_DIR`. If E: is unavailable, set `target_dir` and
+  `scratch_path` to `C:\cargo\sync` and `C:\cargo\sync-tmp` and expect one cold build.
 - **One script at a time.** `Sync-Patches.ps1` and `Submit-Patch.ps1` take `.patch-tools.lock`; a
   second one refuses to start ("Another patch script is running") instead of racing the first.
 - **Check 3 runs only when something changed.** A fix's regression test is run on the build base
   again only when the base, its test commit or its `test_cmd` changed (`check_key` in
   `patches.toml`). `-Recheck` runs them all.
-- **Only changed files are touched.** `doug/patched` is put together in a scratch worktree and
-  checked out in one step, so cargo rebuilds only what differs from the last build.
-- **The build is checked with the workspace tests** (`cargo test --locked --workspace`): each fix
-  already passed `cargo xtask ci` on its own branch. `-FullCi` runs `cargo xtask ci` instead.
+- **One reused scratch checkout.** The checks and the `doug/patched` assembly share
+  `E:\cargo\sync-tmp\check`. That path stays fixed, because Cargo's fingerprints hold absolute
+  source paths. Git only rewrites files that differ, so unchanged files keep their timestamps.
+  `doug/patched` is then checked out in one step, and cargo rebuilds only what changed.
+- **The build is checked with the workspace tests** (`cargo nextest run --locked --workspace` when
+  nextest is installed, otherwise `cargo test --locked --workspace`): each fix already passed
+  `cargo xtask ci` on its own branch. `-FullCi` runs `cargo xtask ci` instead.
 
-The first sync with an empty `mailcraft-target-sync` compiles everything once (debug and release).
+The first sync with an empty `E:\cargo\sync` compiles everything once (debug and release).
 
 ## Automatic watch
 

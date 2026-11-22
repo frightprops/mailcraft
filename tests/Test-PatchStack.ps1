@@ -9,7 +9,8 @@
       negate   - upstream leaves the bug alone                    -> active, built in
       greeting - upstream rewrites the same line, bug still there -> conflict, left out
     Then Retire-Patch.ps1 -All and a second sync, which keeps the first one's regression-test
-    results; -Recheck and the one-script-at-a-time lock. Needs git and cargo; takes a minute or two.
+    results; -Recheck, the one-script-at-a-time lock, and the reused scratch checkout.
+    Needs git and cargo; takes a minute or two.
 #>
 [CmdletBinding()]
 param([switch] $Keep)
@@ -86,6 +87,30 @@ try {
     }
     G $repo switch -q --detach refs/remotes/upstream/main
     Write-File "$tools/patches.toml" ("[settings]`nupstream_repo = `"example/toy`"`nfork_repo = `"me/toy`"`nrun_ci_on_build = false`n`n" + ($entries -join "`n"))
+
+    # ------------------------------------------------------------ reused scratch checkout
+    Write-Host "`n--- reused scratch checkout" -ForegroundColor Cyan
+    $scratch = Join-Path $root 'scratch-reuse'
+    New-Item -ItemType Directory -Path $scratch | Out-Null
+    $oldWt = Join-Path $scratch 'old-patch'
+    G $repo worktree add --detach --quiet $oldWt refs/remotes/upstream/main
+    $wt1 = New-ScratchWorktree $repo $scratch 'name-one' refs/remotes/upstream/main
+    $same = Join-Path $wt1 'app/src/b.rs'
+    $changed = Join-Path $wt1 'app/src/a.rs'
+    $sameTime = (Get-Item -LiteralPath $same).LastWriteTimeUtc
+    $before = [IO.File]::ReadAllText($changed)
+    Write-File (Join-Path $wt1 'stray.txt') "stray`n"
+    $wt2 = New-ScratchWorktree $repo $scratch 'name-two' refs/heads/fix/1-add
+    $after = [IO.File]::ReadAllText($changed)
+    Check ($wt1 -eq $wt2) 'two New-ScratchWorktree calls use the same path'
+    Check ((Split-Path -Leaf $wt1) -eq 'check') 'the reused checkout is named check'
+    Check ((Get-Item -LiteralPath $same).LastWriteTimeUtc -eq $sameTime) 'a file identical in both refs keeps its LastWriteTimeUtc'
+    Check ($before -ne $after -and $after.Contains('a + b')) 'a file that differs is updated'
+    Check (-not (Test-Path -LiteralPath (Join-Path $wt2 'stray.txt'))) 'an untracked stray file is removed'
+    Check (-not (Test-Path -LiteralPath $oldWt)) 'a leftover old-style scratch worktree is removed'
+    $listed = @((Invoke-Git $repo @('worktree', 'list', '--porcelain')).Lines)
+    $stillListed = @($listed | Where-Object { $_.StartsWith('worktree ') -and (Test-SamePath $oldWt $_.Substring(9)) })
+    Check ($stillListed.Count -eq 0) 'the leftover worktree is no longer registered'
 
     # ------------------------------------------------------------ upstream moves on
     $addBranch = "fix/1-add"

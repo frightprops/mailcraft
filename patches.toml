@@ -13,8 +13,8 @@
 #   builds_path     where finished binaries are copied, one folder per build tag
 #   build_base      "tag" = latest upstream release tag, "main" = upstream/main
 #   build_suffix    build tags are patched/<tag>-<build_suffix>.<n>
-#   run_ci_on_build run `cargo test --locked --workspace` (with -FullCi, `cargo xtask ci`) before
-#                   the release build
+#   run_ci_on_build run `cargo nextest run` (or `cargo test`) `--locked --workspace` (with -FullCi,
+#                   `cargo xtask ci`) before the release build
 #
 # [[patch]]
 #   id              short name for the fix
@@ -38,8 +38,8 @@ upstream_repo = "UCS-Care-Group/mailcraft"
 fork_repo = "frightprops/mailcraft"
 repo_path = "../mailcraft"
 patched_path = "../mailcraft-patched"
-scratch_path = "../mailcraft-sync-tmp"
-target_dir = "../mailcraft-target-sync"
+scratch_path = "E:/cargo/sync-tmp"
+target_dir = "E:/cargo/sync"
 builds_path = "../mailcraft-builds"
 build_base = "main"
 build_suffix = "doug"
