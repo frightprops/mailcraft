@@ -1,5 +1,5 @@
 # Watches UCS-Care-Group/mailcraft for a new release and, when one appears, runs the patch checks
-# (Sync-Patches.ps1 -DryRun: nothing is changed) and opens an issue in this fork with the report.
+# (Sync-Patches.ps1 -DryRun -Base tag: nothing is changed) and opens an issue in this fork with the report.
 # Scheduled workflows run only from a repository's default branch, so the fork's default branch
 # is patch-tools.
 name: Upstream watch
@@ -61,14 +61,21 @@ jobs:
           "skip=$($skip.ToString().ToLower())" >> $env:GITHUB_OUTPUT
           Write-Host "Latest upstream release: $tag (already reported: $skip)"
 
+      - name: Install rustup
+        if: steps.latest.outputs.skip != 'true'
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Check the patches against it
         if: steps.latest.outputs.skip != 'true'
         working-directory: mailcraft-patches
         run: |
           git config --global user.name 'upstream-watch'
           git config --global user.email 'upstream-watch@users.noreply.github.com'
-          ./Sync-Patches.ps1 -DryRun -Tag '${{ steps.latest.outputs.tag }}'
-          $global:LASTEXITCODE = 0
+          # A child process, so the script's `exit 2` (report needs a look) does not skip the
+          # issue step. A real failure still fails the job.
+          pwsh -NoProfile -File ./Sync-Patches.ps1 -DryRun -Base tag -Tag '${{ steps.latest.outputs.tag }}'
+          if ($LASTEXITCODE -eq 2) { exit 0 }
+          exit $LASTEXITCODE
 
       - name: Open the report issue
         if: steps.latest.outputs.skip != 'true'

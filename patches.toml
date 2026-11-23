@@ -7,9 +7,11 @@
 #   fork_repo       owner/name of your fork (the "origin" remote)
 #   repo_path       working clone where fix branches are made (relative to this folder)
 #   patched_path    worktree holding doug/patched, the branch that gets built
-#   scratch_path    temporary worktrees used while checking patches
+#   scratch_path    temporary worktrees used while checking patches. A path on a drive that
+#                   is not mounted is replaced with C:\cargo\sync-tmp
 #   target_dir      the scripts' own Cargo build folder (patched\ for doug/patched, scratch\ for
-#                   the checks); nothing else may build in it
+#                   the checks); nothing else may build in it. A path on a drive that is not
+#                   mounted is replaced with C:\cargo\sync
 #   builds_path     where finished binaries are copied, one folder per build tag
 #   build_base      "tag" = latest upstream release tag, "main" = upstream/main
 #   build_suffix    build tags are patched/<tag>-<build_suffix>.<n>

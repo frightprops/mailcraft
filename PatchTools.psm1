@@ -37,9 +37,11 @@ $script:RegistryHeader = @'
 #   fork_repo       owner/name of your fork (the "origin" remote)
 #   repo_path       working clone where fix branches are made (relative to this folder)
 #   patched_path    worktree holding doug/patched, the branch that gets built
-#   scratch_path    temporary worktrees used while checking patches
+#   scratch_path    temporary worktrees used while checking patches. A path on a drive that
+#                   is not mounted is replaced with C:\cargo\sync-tmp
 #   target_dir      the scripts' own Cargo build folder (patched\ for doug/patched, scratch\ for
-#                   the checks); nothing else may build in it
+#                   the checks); nothing else may build in it. A path on a drive that is not
+#                   mounted is replaced with C:\cargo\sync
 #   builds_path     where finished binaries are copied, one folder per build tag
 #   build_base      "tag" = latest upstream release tag, "main" = upstream/main
 #   build_suffix    build tags are patched/<tag>-<build_suffix>.<n>
@@ -277,17 +279,40 @@ function Resolve-ToolPath {
     return [IO.Path]::GetFullPath((Join-Path $script:ToolsDir $Relative))
 }
 
+# Join-Path refuses a path whose drive letter is not mounted ("Cannot find drive"). The build
+# folders live on the E: Dev Drive; a machine without it (the upstream-watch runner) uses the
+# stand-ins named in the README, C:\cargo\sync and C:\cargo\sync-tmp.
+function Resolve-UsablePath {
+    param([string] $Configured, [string] $FallbackLeaf)
+    $full = Resolve-ToolPath $Configured
+    if (Test-IsWindows) {
+        $root = [IO.Path]::GetPathRoot($full)
+        if ($root -match '^[A-Za-z]:\\$') {
+            $mounted = $false
+            foreach ($drive in [IO.DriveInfo]::GetDrives()) {
+                if ($drive.Name -eq $root) { $mounted = $true; break }
+            }
+            if (-not $mounted) {
+                $fallback = [IO.Path]::GetFullPath((Join-Path 'C:\cargo' $FallbackLeaf))
+                Write-Warn "$full is not available (drive $($root.Substring(0, 2)) is not mounted); using $fallback"
+                return $fallback
+            }
+        }
+    }
+    return $full
+}
+
 function Get-Paths {
     param([pscustomobject] $Registry)
     $s = $Registry.Settings
-    $target = Resolve-ToolPath $s['target_dir']
+    $target = Resolve-UsablePath $s['target_dir'] 'sync'
     # Cargo names a workspace crate's output by its path within the workspace, so two checkouts
     # building in one folder overwrite each other's crates, and one can link the other's. Only
     # mailcraft-patched builds in patched\; the scratch checkouts, one at a time, in scratch\.
     [pscustomobject]@{
         Repo          = Resolve-ToolPath $s['repo_path']
         Patched       = Resolve-ToolPath $s['patched_path']
-        Scratch       = Resolve-ToolPath $s['scratch_path']
+        Scratch       = Resolve-UsablePath $s['scratch_path'] 'sync-tmp'
         Target        = $target
         PatchedTarget = Join-Path $target 'patched'
         ScratchTarget = Join-Path $target 'scratch'

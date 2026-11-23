@@ -102,8 +102,8 @@ A sync after a fix changes should take minutes, not hours. What keeps it that wa
   other's crates, and one can link the other's (a build that "can't find" a function the tree has).
   Only `mailcraft-patched` builds in `E:\cargo\sync\patched`, so it stays incremental; the scratch
   checks build in `scratch\`. **Agents and hand builds never use the scripts' build folders**:
-  give each checkout its own `CARGO_TARGET_DIR`. If E: is unavailable, set `target_dir` and
-  `scratch_path` to `C:\cargo\sync` and `C:\cargo\sync-tmp` and expect one cold build.
+  give each checkout its own `CARGO_TARGET_DIR`. If that drive is not mounted, the scripts use
+  `C:\cargo\sync` and `C:\cargo\sync-tmp` instead, and the first build there is cold.
 - **One script at a time.** `Sync-Patches.ps1` and `Submit-Patch.ps1` take `.patch-tools.lock`; a
   second one refuses to start ("Another patch script is running") instead of racing the first.
 - **Check 3 runs only when something changed.** A fix's regression test is run on the build base
@@ -122,7 +122,7 @@ The first sync with an empty `E:\cargo\sync` compiles everything once (debug and
 ## Automatic watch
 
 `.github/workflows/upstream-watch.yml` runs daily on the fork. When upstream has a release that
-has no report issue yet, it runs `Sync-Patches.ps1 -DryRun` against it (changing nothing) and opens
+has no report issue yet, it runs `Sync-Patches.ps1 -DryRun -Base tag` against it (changing nothing) and opens
 an issue in the fork titled `Upstream vX.Y.Z: patch report` with the report, so GitHub notifies
 you. It only sees fix branches that have been pushed to the fork (Submit-Patch.ps1 pushes them)
 and the `patches.toml` committed on `patch-tools`, so push `patch-tools` after changing it.
