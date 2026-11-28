@@ -46,7 +46,8 @@ try {
     if ($commits.Count -lt 2) { throw "$branch has $($commits.Count) commit(s) of its own; it needs the test commit first, then the fix." }
     $testCommit = $commits[0]
     $patch['test_commit'] = $testCommit
-    $subjects = (Invoke-Git $paths.Repo @('log', '--format=%h %s', '--reverse', '--no-merges', "$($commits[0])~1..$ref")).Lines
+    # The branch's own commits. A range would also list commits that arrived by merging upstream/main.
+    $subjects = @((Invoke-Git $paths.Repo (@('log', '--format=%h %s', '--no-walk=unsorted') + @($commits))).Lines | Where-Object { $_ })
     Write-Note "Commits on ${branch}:"
     $subjects | ForEach-Object { Write-Note "  $_" }
     Write-Note "Test commit: $($testCommit.Substring(0, 10))"

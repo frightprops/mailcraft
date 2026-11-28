@@ -375,6 +375,42 @@ function Get-PatchCommits {
     return @($list)
 }
 
+# What a sync cherry-picks. $Commits, unless the branch has merge commits of its own: those hold
+# conflict resolutions, and replaying $Commits drops them. One commit of the tip's tree, parented
+# on the last upstream commit the branch merged, replays the resolution. The same Ref always
+# gives the same sha. $Commits itself stays the branch's own commits (the test commit is first).
+function Get-PatchPicks {
+    param([string] $Repo, [string] $Ref, [string[]] $Commits)
+    $base = (Invoke-Git $Repo @('merge-base', $Ref, 'refs/remotes/upstream/main')).Output.Trim()
+    $merges = @((Invoke-Git $Repo @('rev-list', '--merges', "$base..$Ref")).Lines | Where-Object { $_ -match '^[0-9a-f]{40}$' })
+    if ($merges.Count -eq 0) { return ,$Commits }
+
+    $branch = $Ref -replace '^refs/heads/', '' -replace '^refs/remotes/origin/', ''
+    $tip = (Invoke-Git $Repo @('rev-parse', "$Ref^{commit}")).Output.Trim()
+    $ident = (Invoke-Git $Repo @('log', '-1', '--date=raw', '--format=%an%x1f%ae%x1f%ad%x1f%cn%x1f%ce%x1f%cd', $Ref)).Output.TrimEnd("`r", "`n")
+    $parts = @($ident -split [string][char]31, 6)
+    if ($parts.Count -ne 6 -or $parts[2] -notmatch '^\d+ [+-]\d{4}$' -or $parts[5] -notmatch '^\d+ [+-]\d{4}$') {
+        throw "Get-PatchPicks: could not read the author and committer of $Ref"
+    }
+    $message = "$branch at $($tip.Substring(0, 10)), as one change: the branch keeps up with upstream main by merging it"
+    $names = @('GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_AUTHOR_DATE', 'GIT_COMMITTER_NAME', 'GIT_COMMITTER_EMAIL', 'GIT_COMMITTER_DATE')
+    $saved = @{}
+    for ($i = 0; $i -lt $names.Count; $i++) {
+        $saved[$names[$i]] = [Environment]::GetEnvironmentVariable($names[$i], 'Process')
+        [Environment]::SetEnvironmentVariable($names[$i], $parts[$i], 'Process')
+    }
+    try {
+        # A signature would carry its own timestamp, so the sha would change between calls.
+        $made = Invoke-Git $Repo @('-c', 'commit.gpgsign=false', 'commit-tree', "$Ref^{tree}", '-p', $base, '-m', $message)
+    } finally {
+        foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name, $saved[$name], 'Process') }
+    }
+    $sha = @($made.Lines | Where-Object { $_ -match '^[0-9a-f]{40}$' })
+    if ($sha.Count -ne 1) { throw "Get-PatchPicks: commit-tree for $branch did not return one commit sha:`n$($made.Output)" }
+    # One element would unwrap to a string on the way out; the comma keeps the array.
+    return ,$sha
+}
+
 function Get-ForkOwner {
     param([pscustomobject] $Registry)
     $fork = $Registry.Settings['fork_repo']

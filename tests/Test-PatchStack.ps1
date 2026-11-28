@@ -3,11 +3,13 @@
     Self-test of the patch-stack scripts on a toy "upstream" and fork, with no network.
 
 .DESCRIPTION
-    Four fixes are made on the fork, then "upstream" moves on and makes a release:
+    Five fixes are made on the fork, then "upstream" moves on and makes a release:
       add      - upstream takes the very same commits             -> merged
       double   - upstream fixes the bug its own way               -> superseded
       negate   - upstream leaves the bug alone                    -> active, built in
       greeting - upstream rewrites the same line, bug still there -> conflict, left out
+      signoff  - upstream rewrites the same line; the branch merges main and keeps the fix
+                                                                  -> active, as one change
     Then Retire-Patch.ps1 -All and a second sync, which keeps the first one's regression-test
     results; -Recheck, the one-script-at-a-time lock, and the reused scratch checkout.
     Needs git and cargo; takes a minute or two.
@@ -41,12 +43,13 @@ try {
     G $root init -q -b main $up
     Write-File "$up/Cargo.toml" "[workspace]`nmembers = [`"app`", `"cli`"]`nresolver = `"2`"`n"
     Write-File "$up/app/Cargo.toml" "[package]`nname = `"mailcraft`"`nversion = `"0.1.0`"`nedition = `"2021`"`n"
-    Write-File "$up/app/src/lib.rs" "pub mod a;`npub mod b;`npub mod c;`npub mod d;`n"
+    Write-File "$up/app/src/lib.rs" "pub mod a;`npub mod b;`npub mod c;`npub mod d;`npub mod e;`n"
     Write-File "$up/app/src/main.rs" "fn main() { println!(`"{}`", mailcraft::a::add(1, 2)); }`n"
     Write-File "$up/app/src/a.rs" "pub fn add(a: i32, b: i32) -> i32 {`n    a - b`n}`n"
     Write-File "$up/app/src/b.rs" "pub fn double(x: i32) -> i32 {`n    x + 1`n}`n"
     Write-File "$up/app/src/c.rs" "pub fn negate(x: i32) -> i32 {`n    x`n}`n"
     Write-File "$up/app/src/d.rs" "pub fn greeting() -> &'static str {`n    `"helo`"`n}`n"
+    Write-File "$up/app/src/e.rs" "pub fn signoff() -> &'static str {`n    `"bye`"`n}`n"
     Write-File "$up/cli/Cargo.toml" "[package]`nname = `"mailcraft-cli`"`nversion = `"0.1.0`"`nedition = `"2021`"`n"
     Write-File "$up/cli/src/main.rs" "fn main() {}`n"
     Write-File "$up/.gitignore" "target/`n"
@@ -71,7 +74,8 @@ try {
         @{ id = 'add';      issue = 1; file = 'a.rs'; test = 'assert_eq!(mailcraft::a::add(2, 3), 5);';    from = 'a - b';    to = 'a + b' },
         @{ id = 'double';   issue = 2; file = 'b.rs'; test = 'assert_eq!(mailcraft::b::double(4), 8);';    from = 'x + 1';    to = 'x * 2' },
         @{ id = 'negate';   issue = 3; file = 'c.rs'; test = 'assert_eq!(mailcraft::c::negate(5), -5);';   from = '    x';    to = '    -x' },
-        @{ id = 'greeting'; issue = 4; file = 'd.rs'; test = 'assert_eq!(mailcraft::d::greeting(), "hello");'; from = '"helo"'; to = '"hello"' }
+        @{ id = 'greeting'; issue = 4; file = 'd.rs'; test = 'assert_eq!(mailcraft::d::greeting(), "hello");'; from = '"helo"'; to = '"hello"' },
+        @{ id = 'signoff';  issue = 5; file = 'e.rs'; test = 'assert_eq!(mailcraft::e::signoff(), "goodbye");'; from = '"bye"'; to = '"goodbye"' }
     )
     $entries = @()
     foreach ($f in $fixes) {
@@ -121,6 +125,8 @@ try {
     Commit $repo 'double: fixed upstream another way'
     Write-File "$repo/app/src/d.rs" "pub fn greeting() -> &'static str {`n    `"hi there`"`n}`n"
     Commit $repo 'greeting: reworded'
+    Write-File "$repo/app/src/e.rs" "pub fn signoff() -> &'static str {`n    `"farewell`"`n}`n"
+    Commit $repo 'signoff: reworded, bug remains'
     Write-File "$repo/README.md" "toy`n"
     Commit $repo 'unrelated'
     G $repo tag v1.1.0
@@ -128,6 +134,28 @@ try {
     G $repo switch -q --detach upstream-next
     G $repo branch -q -D upstream-next
     G $repo tag -d v1.1.0
+
+    # ------------------------------------------------------------ branch that merges upstream
+    # Upstream changed the same line and left the bug. The branch merges upstream/main and keeps
+    # the fix, so the resolution lives in the merge, not in the fix commit.
+    G $repo fetch -q upstream --tags
+    G $repo switch -q fix/5-signoff
+    $merge = Invoke-Git $repo @('-c', 'user.name=Test', '-c', 'user.email=test@example.org', 'merge', '--no-edit', 'refs/remotes/upstream/main') -AllowFail
+    Check ($merge.Code -ne 0) 'merging upstream into the signoff fix conflicts on the changed line'
+    Write-File "$repo/app/src/e.rs" "pub fn signoff() -> &'static str {`n    `"goodbye`"`n}`n"
+    Commit $repo 'Merge upstream/main into fix/5-signoff, keeping goodbye'
+    $negRef = 'refs/heads/fix/3-negate'
+    $negCommits = @(Get-PatchCommits $repo $negRef)
+    $negPicks = Get-PatchPicks $repo $negRef $negCommits
+    Check ((@($negPicks) -join ',') -eq (@($negCommits) -join ',')) 'a branch without merges is picked commit by commit'
+    $sigRef = 'refs/heads/fix/5-signoff'
+    $sigCommits = @(Get-PatchCommits $repo $sigRef)
+    $sigPicks = Get-PatchPicks $repo $sigRef $sigCommits
+    $sigAgain = Get-PatchPicks $repo $sigRef $sigCommits
+    Check ($sigCommits.Count -eq 2) "the merging branch still has its own two commits (got $($sigCommits.Count))"
+    Check ($sigPicks.Count -eq 1 -and $sigPicks[0] -ne $sigCommits[0] -and $sigPicks[0] -ne $sigCommits[1]) 'the merging branch picks as one change'
+    Check ($sigAgain[0] -eq $sigPicks[0]) 'the one-change commit sha is stable'
+    G $repo switch -q --detach refs/remotes/upstream/main
 
     # ------------------------------------------------------------ first sync
     Write-Host "`n--- Sync-Patches.ps1 (first)" -ForegroundColor Cyan
@@ -140,9 +168,17 @@ try {
     Check ($st['double'] -eq 'superseded') "double is superseded (got $($st['double']))"
     Check ($st['negate'] -eq 'active') "negate is active (got $($st['negate']))"
     Check ($st['greeting'] -eq 'conflict') "greeting is conflict (got $($st['greeting']))"
+    $sign = @($r.Patches | Where-Object { $_['id'] -eq 'signoff' })[0]
+    Check ($st['signoff'] -eq 'active') "signoff is active (got $($st['signoff']))"
+    Check ($sign['check_verdict'] -eq 'fail' -and $sign['evidence'] -match 'regression test still fails') 'check 3 applied the signoff test commit alone (not superseded)'
+    Check ($sign['evidence'] -match 'applied as one change \(the branch merges upstream main\)') 'signoff evidence records the one-change apply'
     $patched = Join-Path $root 'mailcraft-patched'
     Check ([IO.File]::ReadAllText("$patched/app/src/c.rs") -match '-x') 'doug/patched has the negate fix'
     Check ([IO.File]::ReadAllText("$patched/app/src/d.rs") -match 'hi there') 'doug/patched has upstream greeting, not the conflicting fix'
+    Check ([IO.File]::ReadAllText("$patched/app/src/e.rs") -match '"goodbye"') 'doug/patched has the resolved signoff fix'
+    $subjects = @((Invoke-Git $patched @('log', '--format=%s', 'v1.1.0..HEAD')).Lines | Where-Object { $_ })
+    Check ((@($subjects | Where-Object { $_ -match 'negate' })).Count -eq 2) "an ordinary branch is cherry-picked one commit at a time ($($subjects -join ' | '))"
+    Check ((@($subjects | Where-Object { $_ -match 'as one change' })).Count -eq 1) 'the merging branch landed in doug/patched as one change'
     Check ((Invoke-Git $repo @('tag', '--list', 'patched/v1.1.0-doug.1')).Output.Trim() -eq 'patched/v1.1.0-doug.1') 'build tag patched/v1.1.0-doug.1 made'
     $exe = if (Test-IsWindows) { 'mailcraft.exe' } else { 'mailcraft' }
     Check (Test-Path (Join-Path $root "mailcraft-builds/patched/v1.1.0-doug.1/$exe")) 'binary copied to mailcraft-builds'
@@ -177,7 +213,9 @@ try {
     $r = Read-ToyRegistry
     $st = @{}; foreach ($p in $r.Patches) { $st[$p['id']] = $p['status'] }
     Check ($st['greeting'] -eq 'active') "greeting is active through its backport (got $($st['greeting']))"
+    Check ($st['signoff'] -eq 'active') 'signoff still active on the second sync'
     Check ([IO.File]::ReadAllText("$patched/app/src/d.rs") -match '"hello"') 'doug/patched has the backported greeting fix'
+    Check ([IO.File]::ReadAllText("$patched/app/src/e.rs") -match '"goodbye"') 'doug/patched still has the resolved signoff fix'
     Check ([IO.File]::ReadAllText("$patched/app/src/c.rs") -match '-x') 'doug/patched still has the negate fix'
     Check ((Get-Content (Join-Path $root "mailcraft-builds/current/BUILD.txt") -First 1) -eq 'patched/v1.1.0-doug.2') 'current\ holds the latest build'
     Check ($report -match '\| negate \|[^\n]*kept from an earlier sync') 'the second sync keeps negate''s regression-test result instead of running it again'

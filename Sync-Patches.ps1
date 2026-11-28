@@ -10,7 +10,8 @@
       3. Fixed another way: only the regression test, applied to the build base, now passes -> superseded
          (run again only when the build base, the test commit or test_cmd changed since the last sync)
       4. Issue state: the upstream issue's state is added as evidence (closed as not planned is flagged)
-      5. Otherwise: the fix is applied to the build base on trial -> active, or conflict
+      5. Otherwise: the fix is applied to the build base on trial -> active, or conflict.
+         A branch that merged upstream/main is applied as one change (its merges hold the resolutions).
     Then (unless -DryRun) patches.toml gets each status, doug/patched is recreated as
     build base + active fixes, built (`cargo nextest run` (or `cargo test`) `--locked --workspace`,
     or `cargo xtask ci` with -FullCi, then a release build), tagged patched/<tag>-<suffix>.<n>,
@@ -82,6 +83,7 @@ try {
         $evidence = New-Object System.Collections.ArrayList
         $status = $null
         $commits = @()
+        $picks = @()
 
         $ref = Resolve-PatchRef $paths.Repo $p['branch']
         if (-not $ref) {
@@ -89,7 +91,10 @@ try {
             $status = 'conflict'
         } else {
             if ($ref -like 'refs/remotes/*') { [void]$evidence.Add("using origin's copy of the branch (newer than local)") }
+            # $commits is the branch's own commits (checks 2 and 3). $picks is what to apply.
             $commits = @(Get-PatchCommits $paths.Repo $ref $p['base_commit'])
+            # No @() here: Get-PatchPicks returns one array, and @() would wrap it again.
+            $picks = Get-PatchPicks $paths.Repo $ref $commits
         }
 
         # 1. Merged pull request
@@ -180,9 +185,12 @@ try {
         if (-not $status) {
             $wt = New-ScratchWorktree $paths.Repo $paths.Scratch $id $buildRef
             try {
-                if (Add-CommitsNoCommit $wt $commits) {
+                if (Add-CommitsNoCommit $wt $picks) {
                     $status = 'active'
+                    $asOne = ((@($picks) -join ' ') -ne (@($commits) -join ' '))
+                    $commits = @($picks)
                     [void]$evidence.Add("still needed; applies cleanly to $label")
+                    if ($asOne) { [void]$evidence.Add('applied as one change (the branch merges upstream main)') }
                 } else {
                     $status = 'conflict'
                 }

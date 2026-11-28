@@ -156,6 +156,11 @@ git cherry-pick -x <test commit> <fix commit>   # resolve, git add, git cherry-p
 git push origin backport/v0.13.0/fix/1314-popout-minimized-main
 ```
 
+A fix branch that keeps up with main by merging it (as upstream does in its own pull requests)
+is applied as one change, so a conflict that the merge resolved needs no rebase or backport. A
+backport is only needed when even that change conflicts with the build base (an older release
+tag, for example).
+
 When the branch itself conflicts with upstream/main (so the pull request does too), rebase it:
 
 ```powershell
